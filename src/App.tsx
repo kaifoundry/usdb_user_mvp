@@ -16,7 +16,7 @@ function App() {
             AddressPurpose.Payment,  
             AddressPurpose.Ordinals 
           ],
-          message: "Connect to my local app on Testnet",
+          message: "Connect to my local app on Mainnet",
           network: {
             type: BitcoinNetworkType.Mainnet 
           }
@@ -54,7 +54,7 @@ function App() {
   return (
     <>
       <button className="bg-white border px-4 py-2 rounded" onClick={handleLogin}>
-        Connect Xverse Wallet (Testnet)
+        Connect Xverse Wallet (Mainnet)
       </button>
     </>
   );
