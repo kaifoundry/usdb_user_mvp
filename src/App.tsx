@@ -49,7 +49,6 @@ function App() {
           console.log('Ordinals Address:', ordinalsAddressItem?.address);
           console.log('Stacks Address:', stacksAddressItem?.address);
   setWalletAddress(paymentAddressItem?.address || null);
-          alert(`Payment: ${paymentAddressItem?.address}\nOrdinals: ${ordinalsAddressItem?.address}`);
         },
         onCancel: () => {
           alert('User cancelled the request.');
