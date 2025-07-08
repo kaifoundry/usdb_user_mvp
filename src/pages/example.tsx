@@ -45,7 +45,7 @@ const MintRuneForm = () => {
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center px-4 bg-gray-50 text-gray-900 font-sans">
-      {/* Header */}
+
       <div className="w-full max-w-3xl flex justify-between items-center mb-12">
         <div className="text-sm font-medium bg-gray-200 rounded-full px-4 py-2 shadow">
           BTC Stablecoin
@@ -72,14 +72,14 @@ const MintRuneForm = () => {
         )}
       </div>
 
-      {/* Form Container */}
+  
       <div className="w-full max-w-xl rounded-2xl border border-gray-300 p-6 bg-white shadow-md backdrop-blur-md">
         <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
           <span className="text-lg">←</span> Mint Rune
         </h2>
 
         <form className="space-y-5">
-          {/* Amount */}
+      
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-gray-600 mb-1 block">
               Amount
@@ -91,7 +91,7 @@ const MintRuneForm = () => {
             />
           </div>
 
-          {/* Collateral */}
+        
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-gray-600 mb-1 block">
               Collateral Required
@@ -103,7 +103,7 @@ const MintRuneForm = () => {
             />
           </div>
 
-          {/* Fee */}
+  
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-gray-600 mb-1 block">
               Fee Amount
@@ -115,7 +115,7 @@ const MintRuneForm = () => {
             />
           </div>
 
-          {/* Submit */}
+   
           <div>
             <button
               type="submit"
