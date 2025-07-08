@@ -2,11 +2,6 @@
 
 @import "tailwindcss";
 @theme {
- --breakpoint-xs: 480px;
-  --breakpoint-tablet: 768px;
-  --breakpoint-laptop: 1024px;
-  --breakpoint-desktop: 1280px;
-  --breakpoint-3xl: 1600px;
 
     /* Font Families */
   --font-body: "Open Sans", sans-serif;
@@ -24,10 +19,11 @@
 
 
 /* global font family */
-html {
+/* html {
   font-family: var(--font-body);
-}
-body {
+} */
+
+/* body {
   margin: 0;
   display: flex;
   place-items: center;
@@ -36,8 +32,8 @@ body {
   min-height: 100vh;
   background-color: #f9fafb; 
   color: #111827;             
-  padding: 1rem;
-}
+} */
+/* 
 .container {
   width: 100%;
   max-width: 100%;
@@ -54,4 +50,4 @@ body {
   width: 100%;
   max-width: 1280px;
   margin-inline: auto;
-}
+} */
