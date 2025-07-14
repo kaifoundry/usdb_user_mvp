@@ -1,0 +1,1 @@
+export type AccordionToggleHandler = (e: React.MouseEvent<HTMLDetailsElement>) => void;
