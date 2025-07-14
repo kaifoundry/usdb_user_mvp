@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Wrench } from "lucide-react";
 import logo from "../assets/btclogo.svg";
-import Header from "../Layout/HeaderMain";
+import Header from "../Layout/Header";
+import BackgroundCanvas from "../components/backgroundCanvas";
 const MOCK_BTC_PRICE = 65000;
 const MIN_COLLATERAL_RATIO = 2.0;
 const MOCK_WALLET = {
@@ -17,7 +18,6 @@ const MOCK_VAULTS = [
 ];
 
 function USDBCoin() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(
     (localStorage.getItem("theme") === "light" || localStorage.getItem("theme") === "dark")
       ? (localStorage.getItem("theme") as 'light' | 'dark')
@@ -50,44 +50,7 @@ function USDBCoin() {
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particleColor =
-      theme === "light" ? "rgba(55, 65, 81, 0.3)" : "rgba(251, 191, 36, 0.3)";
-    const num = (canvas.width * canvas.height) / 9000;
-    const particles = Array.from({ length: num }, () =>
-      createParticle(canvas.width, canvas.height, particleColor)
-    );
-
-    function draw() {
-      if (!canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
-        p.x += p.sx;
-        p.y += p.sy;
-        if (p.x < 0 || p.x > canvas.width) p.sx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.sy *= -1;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
-        ctx.fill();
-      });
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, [theme]);
+ 
 
   useEffect(() => {
     const btc = parseFloat(btcDeposit);
@@ -141,11 +104,7 @@ function USDBCoin() {
   };
   return (
     <div className="min-h-screen flex flex-col">
-      <canvas
-        ref={canvasRef}
-        id="particle-canvas"
-        className="fixed top-0 left-0 w-full h-screen -z-10"
-      />
+       <BackgroundCanvas theme={theme} />
 
       <Header
         theme={theme}
@@ -163,7 +122,7 @@ function USDBCoin() {
           <span>You are in testnet mode</span>
         </div>
         <div className="w-full max-w-lg mx-auto">
-          <div className="app-card rounded-2xl p-6 md:p-8">
+          <div className="app-card rounded-2xl p-2 md:px-8 md:py-2">
             <div
               className="flex border-b"
               style={{ borderColor: "var(--card-border-color)" }}
@@ -357,15 +316,6 @@ function USDBCoin() {
   );
 }
 
-function createParticle(width: number, height: number, color: string) {
-  return {
-    x: Math.random() * width,
-    y: Math.random() * height,
-    sz: Math.random() * 1.5 + 0.5,
-    sx: Math.random() * 0.5 - 0.25,
-    sy: Math.random() * 0.5 - 0.25,
-    color,
-  };
-}
+
 
 export default USDBCoin;
