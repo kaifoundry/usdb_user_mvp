@@ -50,7 +50,7 @@ function USDBCoin() {
   };
 
   // Update calculations
-   useEffect(() => {
+  useEffect(() => {
     const btc = parseFloat(btcDeposit);
     if (!btc || btc <= 0) {
       setMintAmount("");
@@ -170,7 +170,7 @@ function USDBCoin() {
                 <div className="w-full shrink-0">
                   {/* Mint Panel */}
                   <div className="mt-6 space-y-4">
-                    <div>
+                    {/* <div>
                       <label className="text-sm text-muted">Deposit BTC</label>
                       <div className="relative mt-1">
                         <input
@@ -191,9 +191,7 @@ function USDBCoin() {
                    
 
                     <div className="text-center text-2xl font-light">↓</div>
-                    {/* <div className=" flex items-center justify-center text-center text-2xl font-light">
-                      <ArrowDownUp />
-                    </div> */}
+                  
                      <div>
                       <label className="text-sm text-muted">
                         Mint USDB (in multiples of 100)
@@ -209,9 +207,64 @@ function USDBCoin() {
                         <span className="absolute inset-y-0 right-4 flex items-center text-muted">
                           USDB
                         </span>
-                        {/* <div className="text-xs text-right text-muted mt-1">
+                       
+                      </div>
+                    </div> */}
+                    <div className="">
+                      {/* <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center shadow-sm z-20">
+              <span className="text-gray-400">↓</span>
+            </div> */}
+
+                      <div className=" rounded-lg p-6  mt-6 app-input">
+                        <div className="flex items-center">
+                          <input
+                            type="text"
+                            value={btcDeposit}
+                            onChange={(e) => setBtcDeposit(e.target.value)}
+                            placeholder="Deposit BTC"
+                            className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
+                          />
+                          <span className="text-muted font-medium ml-4">
+                            BTC
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-3 text-right">
                           Balance: {MOCK_WALLET.btcBalance}
-                        </div> */}
+                        </div>
+                      </div>
+
+                      {/* Arrow */}
+                      <div className="relative">
+                        <div className="absolute left-1/2 transform -translate-x-1/2 -top-8 w-[62px] h-[54px] app-card rounded-[12px] flex items-center justify-center shadow-md z-10 gap-2.5 opacity-100">
+                          <span className="text-lg ">↓</span>
+                        </div>
+
+                        <div className="border border-gray-200 rounded-xl p-6 bg-gray-50 mt-2 app-input app-input-readonly">
+                          <div className="flex items-center relative ">
+                            <input
+                              type="text"
+                              value={btcDeposit}
+                              onChange={(e) => setBtcDeposit(e.target.value)}
+                              readOnly
+                              // className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
+                              className="flex-1 bg-transparent   w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
+                            />
+                            {!btcDeposit && (
+                              <div className="absolute left-0 pointer-events-none flex-1">
+                                <span className="text-xl text-gray-400 font-normal">
+                                  Mint USDB
+                                </span>
+                                <span className="text-sm text-gray-400 ml-2">
+                                  (in multiples of 100)
+                                </span>
+                              </div>
+                            )}
+                            <span className="text-muted font-medium ml-4">
+                              USDB
+                            </span>
+                          </div>
+                        </div>
+                        {/* Mint USDB */}
                       </div>
                     </div>
                     <div className="text-sm text-muted space-y-2">
