@@ -43,8 +43,8 @@ export default function Header({
       <header className="header fixed w-full backdrop-blur-lg z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
-              <div className="w-7 h-6 md:w-11 md:h-11 rounded-full overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+              <div className="w-7 h-6 md:w-7 md:h-7 rounded-full overflow-hidden">
                 <img
                   src={logo}
                   alt=""
@@ -80,9 +80,9 @@ export default function Header({
                 </a>
                 <a
                   href="#"
-                  className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 px-5 rounded-lg transition-all duration-300 transform hover:scale-105 hidden md:block"
+                  className="text-white bg-amber-500 hover:bg-amber-600  font-bold py-2 px-5 rounded-lg transition-all duration-300 transform hover:scale-105 hidden md:block"
                 >
-                  Read Whitepaper
+                  Read Lightpaper
                 </a>
                 {toggleTheme && (
                   <button
@@ -117,16 +117,16 @@ export default function Header({
             </div>
           ) : (
             <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-end space-x-4 text-sm">
-                <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+              <div className="hidden md:flex space-x-4 text-sm">
+                {/* <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
                   {MOCK_WALLET.usdbBalance.toLocaleString()} USDB
                 </span>
                 <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
                   {MOCK_WALLET.btcBalance} BTC
-                </span>
+                </span> */}
                 {(wallet?.paymentAddress?.address?.toString?.() ) ? (
-                  <span className="px-4 py-3  w-1/3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]  flex items-center">
-                    <span className="truncate">
+                  <span className="px-4 py-2   rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]  flex items-center">
+                    <span className="max-w-[180px] xs:max-w-[120px] truncate ">
                       {(wallet?.paymentAddress?.address?.toString?.() || MOCK_WALLET.address)}
                     </span>
                     <button

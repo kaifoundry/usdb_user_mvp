@@ -283,7 +283,7 @@ function USDBCoin() {
                     </div>
                     <button
                       onClick={handleMint}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+                      className="w-full mt-21 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
                     >
                       Mint USDB
                     </button>

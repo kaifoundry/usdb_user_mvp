@@ -57,9 +57,9 @@ body {
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
-/* .logo-text{
+.logo-text{
   color: var(--text-logo-color);
-} */
+}
  .test-net-text{
   color: var(--test-mode-text-color);
 }
