@@ -1,5 +1,8 @@
 import { useLocation } from "react-router-dom";
-
+import { useWallet } from "../api/connectWallet";
+import { Copy } from "lucide-react";
+import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 type HeaderProps = {
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
@@ -14,16 +17,29 @@ type HeaderProps = {
 
 export default function Header({
   theme,
-  setTheme,
   toggleTheme,
   MOCK_WALLET,
   logo,
 }: HeaderProps) {
+  const { wallet, connectWallet, loading, disconnectWallet } =
+    useWallet();
   const location = useLocation();
   const isAppPage = location.pathname === "/usdb";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const address = wallet?.paymentAddress?.address?.toString?.() ?? "";
+    if (address) {
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      toast.success("Address copied!"); 
+      setTimeout(() => setCopied(false), 1200);
+    }
+  };
 
   return (
     <>
+      <Toaster position="top-center" /> {/* <-- add this */}
       <header className="header fixed w-full backdrop-blur-lg z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
@@ -56,12 +72,6 @@ export default function Header({
                 >
                   Features
                 </a>
-                {/* <a
-                href="#ai-assistant"
-                className="hover:text-amber-400 transition-colors"
-              >
-                AI Assistant
-              </a> */}
                 <a
                   href="#faq"
                   className="hover:text-amber-400 transition-colors"
@@ -74,65 +84,92 @@ export default function Header({
                 >
                   Read Whitepaper
                 </a>
-                <button
-                  id="theme-toggle"
-                  onClick={toggleTheme}
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-muted hover:text-amber-400 transition-colors focus:outline-none"
-                >
-                  {theme === "light" ? (
-                    <svg
-                      className="h-5 w-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                    </svg>
-                  ) : (
-                    <svg
-                      className="h-5 w-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                      ></path>
-                    </svg>
-                  )}
-                </button>
+                {toggleTheme && (
+                  <button
+                    id="theme-toggle"
+                    onClick={toggleTheme}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-muted hover:text-amber-400 transition-colors focus:outline-none"
+                  >
+                    {theme === "light" ? (
+                      <svg
+                        className="h-5 w-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-5 w-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                        ></path>
+                      </svg>
+                    )}
+                  </button>
+                )}
               </nav>
             </div>
           ) : (
-            <>
-              <div className="flex items-center space-x-4">
-                <div className="hidden md:flex items-center space-x-4 text-sm">
-                  {/* <span
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: "var(--input-bg-color)" }}
-              >
-                
-              </span> */}
-                  <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
-                    {MOCK_WALLET.usdbBalance.toLocaleString()} USDB
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-end space-x-4 text-sm">
+                <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+                  {MOCK_WALLET.usdbBalance.toLocaleString()} USDB
+                </span>
+                <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+                  {MOCK_WALLET.btcBalance} BTC
+                </span>
+                {(wallet?.paymentAddress?.address?.toString?.() ) ? (
+                  <span className="px-4 py-3  w-1/3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]  flex items-center">
+                    <span className="truncate">
+                      {(wallet?.paymentAddress?.address?.toString?.() || MOCK_WALLET.address)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const address = wallet?.paymentAddress?.address?.toString?.() || MOCK_WALLET.address;
+                        if (address) {
+                          navigator.clipboard.writeText(address);
+                          setCopied(true);
+                          toast.success("Address copied!");
+                          setTimeout(() => setCopied(false), 1200);
+                        }
+                      }}
+                      className="ml-2 p-1 rounded hover:bg-white/10 transition"
+                      title={copied ? "Copied!" : "Copy to clipboard"}
+                      type="button"
+                    >
+                      <Copy size={18} className={copied ? "text-amber-400" : ""} />
+                    </button>
                   </span>
-                  <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
-                    {MOCK_WALLET.btcBalance} BTC
-                  </span>
-                  <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
-                    {MOCK_WALLET.address}
-                  </span>
-                </div>
+                ) : null}
+              </div>
+              {wallet?.paymentAddress ? (
                 <button
-                  className=" bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm md:text-xl py-3.5 px-3 md:p-4 rounded-[10px] md:rounded-xl transition-colors md:shadow-[0px_6px_8px_0px_rgba(0,0,0,0.08)]
-                  md:backdrop-blur-[7px] 
-    shadow-[0px_5.11px_6.82px_0px_rgba(0,0,0,0.08)]
-    backdrop-blur-[5.964px]
-     duration-320 ease-out"
-                  disabled
+                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-5 rounded-lg transition-all duration-300 transform hover:scale-105 hidden md:block"
+                  onClick={disconnectWallet}
+                  disabled={loading}
                 >
-                  Connect wallet
+                  Disconnect
                 </button>
+              ) : (
+                <button
+                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-5 rounded-lg transition-all duration-300 transform hover:scale-105 hidden md:block"
+                  onClick={connectWallet}
+                  disabled={loading}
+                >
+                  {loading
+                    ? "Connecting..."
+                    : wallet
+                    ? "Wallet Connected"
+                    : "Connect wallet"}
+                </button>
+              )}
+              {toggleTheme && (
                 <button
                   id="theme-toggle"
                   onClick={toggleTheme}
@@ -160,8 +197,8 @@ export default function Header({
                     </svg>
                   )}
                 </button>
-              </div>
-            </>
+              )}
+            </div>
           )}
         </div>
       </header>

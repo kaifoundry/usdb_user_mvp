@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowDownUp, Wrench } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Wrench } from "lucide-react";
 import logo from "../assets/btclogo.svg";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
