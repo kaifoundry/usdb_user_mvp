@@ -13,9 +13,9 @@ export default function WhitepaperSection() {
             </p>
             <a
               href="#"
-              className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 px-10 rounded-lg transition-all duration-300 text-xl transform hover:scale-105 shadow-lg shadow-amber-500/20"
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 px-10 rounded-lg transition-all duration-300 text-xl transform hover:scale-105 shadow-lg shadow-amber-500/20"
             >
-              Read the Whitepaper
+              Read the LightPaper
             </a>
           </div>
         </section>

@@ -24,7 +24,7 @@ export default function HeroSection() {
                 >
                   <Link
                     to="/usdb"
-                    className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 px-8 rounded-lg transition-all duration-300 text-lg transform hover:scale-105 shadow-lg shadow-amber-500/20"
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 text-lg transform hover:scale-105 shadow-lg shadow-amber-500/20"
                   >
                     Launch App
                   </Link>
