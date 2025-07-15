@@ -22,14 +22,14 @@ export default function Header({ theme, setTheme, toggleTheme, MOCK_WALLET, logo
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <div className="flex items-center gap-3 px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
-              <div className="w-11 h-11 rounded-full overflow-hidden">
+              <div className="w-7 h-6 md:w-11 md:h-11 rounded-full overflow-hidden">
                 <img
                   src={logo}
                   alt=""
                   className="object-cover w-full h-full object-center bg-[#FF9500] [background-blend-mode:multiply]"
                 />
               </div>
-              <span className="text-xl font-medium tracking-tight">
+              <span className="text-sm md:text-xl font-medium tracking-tight">
                 BTC Stablecoin
               </span>
             </div>
@@ -119,10 +119,10 @@ export default function Header({ theme, setTheme, toggleTheme, MOCK_WALLET, logo
               
             </div>
             <button
-              className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 px-5 rounded-lg transition-colors"
+              className="bg-amber-500 hover:bg-amber-600 text-black font-medium text-sm md:text-xl py-3.5 px-3 md:p-4 rounded-[10px] md:rounded-xl transition-colors"
               disabled
             >
-              Connected
+              Connect wallet
             </button>
            <button
               id="theme-toggle"

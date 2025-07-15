@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Wrench } from "lucide-react";
+import { ArrowDownUp, Wrench } from "lucide-react";
 import logo from "../assets/btclogo.svg";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
+import SuccessModal from "../Modal/successModal";
 const MOCK_BTC_PRICE = 65000;
 const MIN_COLLATERAL_RATIO = 2.0;
 const MOCK_WALLET = {
@@ -18,15 +19,14 @@ const MOCK_VAULTS = [
 ];
 
 function USDBCoin() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(
-    (localStorage.getItem("theme") === "light" || localStorage.getItem("theme") === "dark")
-      ? (localStorage.getItem("theme") as 'light' | 'dark')
-      : (window.matchMedia("(prefers-color-scheme: light)").matches
-        ? "light"
-        : "dark")
+  const [theme, setTheme] = useState<"light" | "dark">(
+    localStorage.getItem("theme") === "light" ||
+      localStorage.getItem("theme") === "dark"
+      ? (localStorage.getItem("theme") as "light" | "dark")
+      : window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark"
   );
-
-
 
   const [activeTab, setActiveTab] = useState<"mint" | "withdraw">("mint");
   const [prevTab, setPrevTab] = useState<"mint" | "withdraw">("mint");
@@ -36,11 +36,9 @@ function USDBCoin() {
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [selectedVaults, setSelectedVaults] = useState<number[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
- 
 
-
-    // Theme handling
- useEffect(() => {
+  // Theme handling
+  useEffect(() => {
     document.body.classList.toggle("light-mode", theme === "light");
     localStorage.setItem("theme", theme);
   }, [theme]);
@@ -50,25 +48,27 @@ function USDBCoin() {
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
- 
 
+ // Update calculations 
   useEffect(() => {
-    const btc = parseFloat(btcDeposit);
-    if (!btc || btc <= 0) {
-      setMintAmount("");
+    const usdb = parseFloat(mintAmount);
+    if (!usdb || usdb <= 0) {
+      setBtcDeposit("");
       setCollateralRatio("--");
       setLiquidationPrice("$0.00");
       return;
     }
-    const collateralValue = btc * MOCK_BTC_PRICE;
-    const maxMint =
-      Math.floor(collateralValue / MIN_COLLATERAL_RATIO / 100) * 100;
-    setMintAmount(maxMint.toFixed(2));
-    setCollateralRatio(((collateralValue / maxMint) * 100).toFixed(0));
-    const liquidation = (maxMint * 1.25) / btc;
+    
+    const requiredCollateralValue = usdb * MIN_COLLATERAL_RATIO;
+    const requiredBtc = requiredCollateralValue / MOCK_BTC_PRICE;
+    setBtcDeposit(requiredBtc.toFixed(6));
+    
+    const collateralValue = requiredBtc * MOCK_BTC_PRICE;
+    setCollateralRatio(((collateralValue / usdb) * 100).toFixed(0));
+    
+    const liquidation = (usdb * 1.25) / requiredBtc;
     setLiquidationPrice(`$${liquidation.toFixed(2)}`);
-  }, [btcDeposit]);
-
+  }, [mintAmount]);
   const toggleVaultSelection = (id: number) => {
     setSelectedVaults((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
@@ -104,7 +104,7 @@ function USDBCoin() {
   };
   return (
     <div className="min-h-screen flex flex-col">
-       <BackgroundCanvas theme={theme} />
+      <BackgroundCanvas theme={theme} />
 
       <Header
         theme={theme}
@@ -112,17 +112,35 @@ function USDBCoin() {
         MOCK_WALLET={MOCK_WALLET}
         logo={logo}
         toggleTheme={toggleTheme}
-        
       />
 
-      <main className="flex-grow flex flex-col items-center justify-center p-4 pt-24 relative z-10">
+      <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
         <div className="border-[1.2px] bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)]   rounded-2xl px-4 py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
           <Wrench size={19} />
 
           <span>You are in testnet mode</span>
         </div>
         <div className="w-full max-w-lg mx-auto">
-          <div className="app-card rounded-2xl p-2 md:px-8 md:py-2">
+          {/* <div className="flex items-center justify-center gap-[10px] rounded-xl p-1 ">
+            <button
+              className={`px-6 w-[120px] py-3 rounded-xl font-semibold transition-colors ${
+                activeTab === "mint" ? "bg-[#262626]" : "text-gray-400"
+              }`}
+              onClick={() => setActiveTab("mint")}
+            >
+              Mint
+            </button>
+            <button
+              className={`px-6 w-[120px] py-3 rounded-xl font-semibold transition-colors ${
+                activeTab === "withdraw" ? " bg-[#262626] " : "text-gray-400"
+              }`}
+              onClick={() => setActiveTab("withdraw")}
+            >
+              Withdraw
+            </button>
+          </div> */}
+
+          <div className="app-card rounded-2xl p-2 md:px-8 md:pb-6">
             <div
               className="flex border-b"
               style={{ borderColor: "var(--card-border-color)" }}
@@ -157,25 +175,6 @@ function USDBCoin() {
                   {/* Mint Panel */}
                   <div className="mt-6 space-y-4">
                     <div>
-                      <label className="text-sm text-muted">Deposit BTC</label>
-                      <div className="relative mt-1">
-                        <input
-                          type="number"
-                          value={btcDeposit}
-                          onChange={(e) => setBtcDeposit(e.target.value)}
-                          placeholder="0.0"
-                          className="app-input w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
-                        />
-                        <span className="absolute inset-y-0 right-4 flex items-center text-muted">
-                          BTC
-                        </span>
-                      </div>
-                      <div className="text-xs text-right text-muted mt-1">
-                        Balance: {MOCK_WALLET.btcBalance}
-                      </div>
-                    </div>
-                    <div className="text-center text-2xl font-light">↓</div>
-                    <div>
                       <label className="text-sm text-muted">
                         Mint USDB (in multiples of 100)
                       </label>
@@ -183,14 +182,38 @@ function USDBCoin() {
                         <input
                           type="number"
                           value={mintAmount}
-                          readOnly
+                          onChange={(e) => setMintAmount(e.target.value)}
                           placeholder="0.0"
                           className="app-input w-full p-4 pr-24 rounded-lg text-2xl bg-opacity-50 focus:outline-none focus:ring-0 focus:border-transparent"
                         />
                         <span className="absolute inset-y-0 right-4 flex items-center text-muted">
                           USDB
                         </span>
+                        <div className="text-xs text-right text-muted mt-1">
+                        Balance: {MOCK_WALLET.btcBalance}
                       </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center text-2xl font-light">↓</div>
+                    {/* <div className=" flex items-center justify-center text-center text-2xl font-light">
+                      <ArrowDownUp />
+                    </div> */}
+                    <div>
+                      <label className="text-sm text-muted">Deposit BTC</label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          value={btcDeposit}
+                          readOnly
+                          placeholder="0.0"
+                          className="app-input w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
+                        />
+                        <span className="absolute inset-y-0 right-4 flex items-center text-muted">
+                          BTC
+                        </span>
+                      </div>
+                      
                     </div>
                     <div className="text-sm text-muted space-y-2">
                       <div className="flex justify-between">
@@ -217,10 +240,25 @@ function USDBCoin() {
                 <div className="w-full shrink-0">
                   {/* Withdraw Panel */}
                   <div className="mt-6">
-                    <label className="text-sm text-muted">
-                      Select vaults to close
-                    </label>
-                    <div className="mt-2 space-y-3 max-h-60 overflow-y-auto pr-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-muted">
+                        Select vaults to close
+                      </label>
+                      <input
+                        type="checkbox"
+                        className="vault-checkbox w-5 h-5 pr-2"
+                        checked={selectedVaults.length === MOCK_VAULTS.length}
+                        onChange={() => {
+                          if (selectedVaults.length === MOCK_VAULTS.length) {
+                            setSelectedVaults([]);
+                          } else {
+                            setSelectedVaults(MOCK_VAULTS.map((v) => v.id));
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
                       {MOCK_VAULTS.map((vault) => (
                         <div
                           key={vault.id}
@@ -279,43 +317,15 @@ function USDBCoin() {
             </div>
           </div>
         </div>
-        {showSuccessModal && (
-          <div
-            className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 ${
-              theme === "light" ? "bg-white/80" : "bg-black/80"
-            }`}
-          >
-            <div
-              className="p-8 rounded-xl text-center shadow-lg w-full max-w-3xl h-[340px] mx-4 flex flex-col items-center justify-center"
-              style={{ backgroundColor: "var(--bg-color)" }}
-            >
-              <div>
-                <h2 className="text-2xl font-medium mb-2">
-                  Minting transaction submitted!
-                </h2>
-                <div className="text-lg font-medium mb-4 flex flex-col items-center">
-                  <span>
-                    You are attempting to lock <strong>2 BTC</strong> and mint
-                  </span>
-                  <span>
-                    <strong>65,00 USDB</strong>. This is a simulation.
-                  </span>
-                </div>
-                <button
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg shadow"
-                  onClick={() => setShowSuccessModal(false)}
-                >
-                  View Progress
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <SuccessModal
+          show={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          theme={theme}
+        />
+       
       </main>
     </div>
   );
 }
-
-
 
 export default USDBCoin;

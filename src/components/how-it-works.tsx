@@ -23,7 +23,7 @@ export default function Howitworks() {
               <div className="timeline-item mb-16 scroll-animate">
                 <div className="timeline-dot"></div>
                 <div className="themed-card p-6 rounded-2xl">
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
                     <div className="icon-circle flex-shrink-0 flex items-center justify-center w-20 h-20 rounded-full">
                       <svg
                         className="w-10 h-10 text-amber-400"
@@ -56,7 +56,7 @@ export default function Howitworks() {
               <div className="timeline-item mb-16 scroll-animate">
                 <div className="timeline-dot"></div>
                 <div className="themed-card p-6 rounded-2xl">
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
                     <div className="icon-circle flex-shrink-0 flex items-center justify-center w-20 h-20 rounded-full">
                       <svg
                         className="w-10 h-10 text-amber-400"
@@ -89,7 +89,7 @@ export default function Howitworks() {
               <div className="timeline-item scroll-animate">
                 <div className="timeline-dot"></div>
                 <div className="themed-card p-6 rounded-2xl">
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
                     <div className="icon-circle flex-shrink-0 flex items-center justify-center w-20 h-20 rounded-full">
                       <svg
                         className="w-10 h-10 text-amber-400"

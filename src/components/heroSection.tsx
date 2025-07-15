@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function HeroSection() {
   return (
-      <section className="text-center py-24 md:py-40 relative">
+      <section className="text-center py-6 md:py-40 relative">
               <div className="hero-aurora"></div>
               <div className="container mx-auto px-6 relative z-10">
                 <h2 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 scroll-animate">

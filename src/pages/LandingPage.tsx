@@ -77,14 +77,14 @@ const LandingPage: React.FC = () => {
   };
 
   // AI Assistant
-  const {
-  aiPrompt,
-  setAiPrompt,
-  aiResponse,
-  setAiResponse,
-  aiLoading,
-  handleAiSubmit,
-} = useAIAssistant();
+//   const {
+//   aiPrompt,
+//   setAiPrompt,
+//   aiResponse,
+//   setAiResponse,
+//   aiLoading,
+//   handleAiSubmit,
+// } = useAIAssistant();
 
   return (
     <div>
@@ -109,14 +109,14 @@ const LandingPage: React.FC = () => {
         {/* Features Section */}
         <Features />
         {/* AI Assistant Section */}
-        <AIAssistantSection
+        {/* <AIAssistantSection
           aiPrompt={aiPrompt}
           setAiPrompt={setAiPrompt}
           aiResponse={aiResponse}
           setAiResponse={setAiResponse}
           aiLoading={aiLoading}
           handleAiSubmit={handleAiSubmit}
-        />
+        /> */}
         {/* FAQ Section */}
         <Faq handleAccordionToggle={handleAccordionToggle} />
         {/* Call to Action Section */}
