@@ -49,26 +49,23 @@ function USDBCoin() {
     localStorage.setItem("theme", newTheme);
   };
 
- // Update calculations 
-  useEffect(() => {
-    const usdb = parseFloat(mintAmount);
-    if (!usdb || usdb <= 0) {
-      setBtcDeposit("");
+  // Update calculations
+   useEffect(() => {
+    const btc = parseFloat(btcDeposit);
+    if (!btc || btc <= 0) {
+      setMintAmount("");
       setCollateralRatio("--");
       setLiquidationPrice("$0.00");
       return;
     }
-    
-    const requiredCollateralValue = usdb * MIN_COLLATERAL_RATIO;
-    const requiredBtc = requiredCollateralValue / MOCK_BTC_PRICE;
-    setBtcDeposit(requiredBtc.toFixed(6));
-    
-    const collateralValue = requiredBtc * MOCK_BTC_PRICE;
-    setCollateralRatio(((collateralValue / usdb) * 100).toFixed(0));
-    
-    const liquidation = (usdb * 1.25) / requiredBtc;
+    const collateralValue = btc * MOCK_BTC_PRICE;
+    const maxMint =
+      Math.floor(collateralValue / MIN_COLLATERAL_RATIO / 100) * 100;
+    setMintAmount(maxMint.toFixed(2));
+    setCollateralRatio(((collateralValue / maxMint) * 100).toFixed(0));
+    const liquidation = (maxMint * 1.25) / btc;
     setLiquidationPrice(`$${liquidation.toFixed(2)}`);
-  }, [mintAmount]);
+  }, [btcDeposit]);
   const toggleVaultSelection = (id: number) => {
     setSelectedVaults((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
@@ -115,9 +112,8 @@ function USDBCoin() {
       />
 
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
-        <div className="border-[1.2px] bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)]   rounded-2xl px-4 py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
+        <div className="test-net-text border md:border-[1.2px] border-dashed bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)] rounded-xl  md:rounded-2xl py-2.5 md:px-4 md:py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
           <Wrench size={19} />
-
           <span>You are in testnet mode</span>
         </div>
         <div className="w-full max-w-lg mx-auto">
@@ -147,7 +143,7 @@ function USDBCoin() {
             >
               <button
                 onClick={() => handleTabChange("mint")}
-                className={`tab flex-1 py-3 text-lg font-semibold ${
+                className={`tab flex-1 py-3 text-base font-medium ${
                   activeTab === "mint" ? "active" : ""
                 }`}
               >
@@ -155,7 +151,7 @@ function USDBCoin() {
               </button>
               <button
                 onClick={() => handleTabChange("withdraw")}
-                className={`tab flex-1 py-3 text-lg font-semibold ${
+                className={`tab flex-1 py-3 text-base font-medium ${
                   activeTab === "withdraw" ? "active" : ""
                 }`}
               >
@@ -175,6 +171,30 @@ function USDBCoin() {
                   {/* Mint Panel */}
                   <div className="mt-6 space-y-4">
                     <div>
+                      <label className="text-sm text-muted">Deposit BTC</label>
+                      <div className="relative mt-1">
+                        <input
+                         type="number"
+                          value={btcDeposit}
+                          onChange={(e) => setBtcDeposit(e.target.value)}
+                          placeholder="0.0"
+                          className="app-input app-input-readonly w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
+                        />
+                        <span className="absolute inset-y-0 right-4 flex items-center text-muted">
+                          BTC
+                        </span>
+                        <div className="text-xs text-right text-muted mt-1">
+                        Balance: {MOCK_WALLET.btcBalance}
+                      </div>
+                      </div>
+                    </div>
+                   
+
+                    <div className="text-center text-2xl font-light">↓</div>
+                    {/* <div className=" flex items-center justify-center text-center text-2xl font-light">
+                      <ArrowDownUp />
+                    </div> */}
+                     <div>
                       <label className="text-sm text-muted">
                         Mint USDB (in multiples of 100)
                       </label>
@@ -182,38 +202,17 @@ function USDBCoin() {
                         <input
                           type="number"
                           value={mintAmount}
-                          onChange={(e) => setMintAmount(e.target.value)}
+                          readOnly
                           placeholder="0.0"
                           className="app-input w-full p-4 pr-24 rounded-lg text-2xl bg-opacity-50 focus:outline-none focus:ring-0 focus:border-transparent"
                         />
                         <span className="absolute inset-y-0 right-4 flex items-center text-muted">
                           USDB
                         </span>
-                        <div className="text-xs text-right text-muted mt-1">
-                        Balance: {MOCK_WALLET.btcBalance}
+                        {/* <div className="text-xs text-right text-muted mt-1">
+                          Balance: {MOCK_WALLET.btcBalance}
+                        </div> */}
                       </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center text-2xl font-light">↓</div>
-                    {/* <div className=" flex items-center justify-center text-center text-2xl font-light">
-                      <ArrowDownUp />
-                    </div> */}
-                    <div>
-                      <label className="text-sm text-muted">Deposit BTC</label>
-                      <div className="relative mt-1">
-                        <input
-                          type="number"
-                          value={btcDeposit}
-                          readOnly
-                          placeholder="0.0"
-                          className="app-input w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
-                        />
-                        <span className="absolute inset-y-0 right-4 flex items-center text-muted">
-                          BTC
-                        </span>
-                      </div>
-                      
                     </div>
                     <div className="text-sm text-muted space-y-2">
                       <div className="flex justify-between">
@@ -262,12 +261,17 @@ function USDBCoin() {
                       {MOCK_VAULTS.map((vault) => (
                         <div
                           key={vault.id}
-                          className="vault-item flex items-center justify-between p-4 rounded-lg"
+                          // className="vault-item flex items-center justify-between p-4 rounded-lg"
+                          className={`vault-item flex items-center justify-between p-4 rounded-lg ${
+                            selectedVaults.includes(vault.id)
+                              ? "vault-item-selected"
+                              : ""
+                          }`}
                         >
                           <div className="flex items-center gap-4">
                             <input
                               type="checkbox"
-                              className="vault-checkbox w-5 h-5"
+                              className="vault-checkbox  w-5 h-5"
                               checked={selectedVaults.includes(vault.id)}
                               onChange={() => toggleVaultSelection(vault.id)}
                             />
@@ -322,7 +326,6 @@ function USDBCoin() {
           onClose={() => setShowSuccessModal(false)}
           theme={theme}
         />
-       
       </main>
     </div>
   );
