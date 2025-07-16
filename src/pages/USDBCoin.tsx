@@ -217,7 +217,7 @@ function USDBCoin() {
                          className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
                               error
                                 ? "text-red-500"
-                                : "text-gray-400 focus:text-gray-900"
+                                : ""
                             }`}
                         />
                         <span className="text-muted font-medium ml-4">BTC</span>
