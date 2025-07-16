@@ -1,33 +1,49 @@
 import { request, AddressPurpose, RpcErrorCode } from "sats-connect";
 
-export interface paymentItem {
-  purpose: any; 
+export interface WalletAddress {
   address: string;
+  publicKey: string;
+  purpose: "payment" | "ordinals" | "stacks";
+  addressType: "p2tr" | "p2wpkh" | "p2sh" | "stacks";
+  walletType: "software" | "ledger" | "keystone";
 }
 
-export interface getAddressesResult {
-  paymentAddress?: paymentItem;
+export interface GetAddressesResult {
+  paymentAddress?: WalletAddress;
+  ordinalsAddress?: WalletAddress;
+  stacksAddress?: WalletAddress;
 }
 
 /**
- * @returns {Promise<getAddressesResult>}
+ * Requests the user's wallet addresses.
+ * @returns {Promise<GetAddressesResult>}
  */
-
-export const getAddresses = async (): Promise<getAddressesResult> => {
+export const getAddresses = async (): Promise<GetAddressesResult> => {
   try {
-    const response = await request("getAddresses", { purposes: [AddressPurpose.Payment] });
+    const response = await request("getAddresses", {
+      purposes: [AddressPurpose.Payment],
+    });
 
     if (response.status === "success") {
-      const paymentAddressItem = response.result.addresses.find(
-        (address: any) => address.purpose === AddressPurpose.Payment
+      const paymentRaw = response.result.addresses.find(
+        (address: { address: string; publicKey: string; purpose: AddressPurpose; addressType: string; walletType: "software" | "ledger" | "keystone"; }) =>
+          address.purpose === AddressPurpose.Payment
       );
-console.log({name: "getAddresses", paymentAddressItem});
-      return {
-        paymentAddress: paymentAddressItem,
-      };
+
+      const paymentAddress: WalletAddress | undefined = paymentRaw
+        ? {
+            address: paymentRaw.address,
+            publicKey: paymentRaw.publicKey,
+            purpose: paymentRaw.purpose as "payment" | "ordinals" | "stacks",
+            addressType: paymentRaw.addressType as "p2tr" | "p2wpkh" | "p2sh" | "stacks",
+            walletType: paymentRaw.walletType,
+          }
+        : undefined;
+
+      return { paymentAddress };
     } else {
       if (response.error.code === RpcErrorCode.USER_REJECTION) {
-        throw new Error("User rejected wallet connection.");
+        throw new Error("User rejected address request.");
       } else {
         throw new Error(`Wallet error: ${response.error.message}`);
       }

@@ -7,18 +7,12 @@ type HeaderProps = {
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
   toggleTheme?: () => void;
-  MOCK_WALLET: {
-    usdbBalance: number;
-    btcBalance: number;
-    address: string;
-  };
   logo: string;
 };
 
 export default function Header({
   theme,
   toggleTheme,
-  MOCK_WALLET,
   logo,
 }: HeaderProps) {
   const { wallet, connectWallet, loading, disconnectWallet } =
@@ -26,16 +20,6 @@ export default function Header({
   const location = useLocation();
   const isAppPage = location.pathname === "/usdb";
   const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    const address = wallet?.paymentAddress?.address?.toString?.() ?? "";
-    if (address) {
-      navigator.clipboard.writeText(address);
-      setCopied(true);
-      toast.success("Address copied!"); 
-      setTimeout(() => setCopied(false), 1200);
-    }
-  };
 
   return (
     <>
@@ -127,11 +111,11 @@ export default function Header({
                 {(wallet?.paymentAddress?.address?.toString?.() ) ? (
                   <span className="px-4 py-2   rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]  flex items-center">
                     <span className="max-w-[180px] xs:max-w-[120px] truncate ">
-                      {(wallet?.paymentAddress?.address?.toString?.() || MOCK_WALLET.address)}
+                      {(wallet?.paymentAddress?.address?.toString?.())}
                     </span>
                     <button
                       onClick={() => {
-                        const address = wallet?.paymentAddress?.address?.toString?.() || MOCK_WALLET.address;
+                        const address = wallet?.paymentAddress?.address?.toString?.();
                         if (address) {
                           navigator.clipboard.writeText(address);
                           setCopied(true);

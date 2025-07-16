@@ -93,7 +93,6 @@ const LandingPage: React.FC = () => {
       <Header
         theme={theme}
         setTheme={setTheme}
-        MOCK_WALLET={MOCK_WALLET}
         logo={logo}
         toggleTheme={toggleTheme}
       />
