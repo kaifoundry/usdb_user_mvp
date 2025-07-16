@@ -38,6 +38,7 @@ function USDBCoin() {
   const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("--");
   const [selectedVaults, setSelectedVaults] = useState<number[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [error, setError] = useState("");
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
@@ -71,6 +72,24 @@ function USDBCoin() {
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
   };
+
+  const handleBtcDeposit = (value: string) => {
+  setBtcDeposit(value);
+
+  const inputAmount = parseFloat(value);
+  if (isNaN(inputAmount)) {
+    setError("");
+    return;
+  }
+  const availableBalance = Number(getBalanceResult) / 100_000_000;
+
+  if (inputAmount > availableBalance) {
+    setError("Insufficient Balance");
+  } else {
+    setError("");
+  }
+};
+
 
 
   useEffect(() => {
@@ -190,20 +209,39 @@ function USDBCoin() {
                     <div className="rounded-lg p-6 mt-6 app-input">
                       <div className="flex items-center">
                         <input
-                          type="text"
+                          type="number"
                           value={btcDeposit}
-                          onChange={(e) => setBtcDeposit(e.target.value)}
+                          onChange={(e) => handleBtcDeposit(e.target.value)}
                           placeholder="Deposit BTC"
-                          className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
+                          // className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
+                         className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
+                              error
+                                ? "text-red-500"
+                                : "text-gray-400 focus:text-gray-900"
+                            }`}
                         />
                         <span className="text-muted font-medium ml-4">BTC</span>
                       </div>
-                      <div className="text-sm text-gray-500 mt-3 text-right">
+                       <div className="flex justify-between">
+                          <div className="text-sm text-red-500 mt-3">
+                            {error}
+                          </div>
+                          <div
+                            className={`text-sm mt-3 ${
+                              error ? "text-red-500" : "text-gray-500"
+                            }`}
+                          >
+                            Balance: {getBalanceResult !== null
+                          ? `${(Number(getBalanceResult) / 100_000_000).toFixed(8)} BTC`
+                          : "--"}
+                          </div>
+                        </div>
+                      {/* <div className="text-sm text-gray-500 mt-3 text-right">
                         Balance:{" "}
                         {getBalanceResult !== null
                           ? `${(Number(getBalanceResult) / 100_000_000).toFixed(8)} BTC`
                           : "--"}
-                      </div>
+                      </div> */}
                       {/* <div className="text-sm text-gray-500 mt-1 text-right">
                         ≈ {btcDepositSats} SATs
                       </div> */}
@@ -217,10 +255,10 @@ function USDBCoin() {
                       <div className="border border-gray-200 rounded-xl p-6 bg-gray-50 mt-2 app-input app-input-readonly">
                         <div className="flex items-center relative ">
                           <input
-                            type="text"
+                            type="number"
                             value={mintAmount}
                             readOnly
-                            className="flex-1 bg-transparent w-full p-4 pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
+                            className="flex-1 bg-transparent w-full  pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
                           />
                           {!mintAmount && (
                             <div className="absolute left-0 pointer-events-none flex-1">
