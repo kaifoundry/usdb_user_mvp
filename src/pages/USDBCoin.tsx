@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Wrench } from "lucide-react";
-import logo from "../assets/btclogo.svg";
+import logo from "../assets/logowhite.png";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
 import SuccessModal from "../Modal/successModal";

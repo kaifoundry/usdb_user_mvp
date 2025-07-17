@@ -27,7 +27,7 @@ export default function Header({
       <header className="header fixed w-full backdrop-blur-lg z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
               <div className="w-7 h-6 md:w-7 md:h-7 rounded-full overflow-hidden">
                 <img
                   src={logo}
@@ -102,14 +102,14 @@ export default function Header({
           ) : (
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex space-x-4 text-sm">
-                {/* <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+                {/* <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
                   {MOCK_WALLET.usdbBalance.toLocaleString()} USDB
                 </span>
-                <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]">
+                <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
                   {MOCK_WALLET.btcBalance} BTC
                 </span> */}
                 {(wallet?.paymentAddress?.address?.toString?.() ) ? (
-                  <span className="px-4 py-2   rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,_rgba(82,82,82,0.24)_0%,_rgba(82,82,82,0.08)_100%)]  flex items-center">
+                  <span className="px-4 py-2   rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]  flex items-center">
                     <span className="max-w-[180px] xs:max-w-[120px] truncate ">
                       {(wallet?.paymentAddress?.address?.toString?.())}
                     </span>

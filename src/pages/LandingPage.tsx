@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import logo from "../assets/btclogo.svg";
+import logo from "../assets/logowhite.png";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
 import Faq from "../components/faq";
