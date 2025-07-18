@@ -7,6 +7,9 @@ import SuccessModal from "../Modal/successModal";
 import { useWallet } from "../api/connectWallet";
 import { getAddresses } from "../api/getAddresses";
 import { getBalance } from "../api/getBalance";
+import { signMessage } from "../api/signMessage";
+import { MessageSigningProtocols } from "sats-connect";
+import { signPsbt } from "../api/signPsbt";
 
 const MOCK_BTC_PRICE = 65000;
 const MIN_COLLATERAL_RATIO = 1.5;
@@ -158,6 +161,44 @@ function USDBCoin() {
     setShowSuccessModal(true);
   };
 
+  async function handleSign() {
+  if (!paymentAddress) {
+    console.error("Payment address is null or undefined");
+    return;
+  }
+
+  const result = await signMessage({
+    address: paymentAddress,
+    message: "Please sign this message for verification",
+    protocol: MessageSigningProtocols.ECDSA, 
+  });
+
+  if (result) {
+    console.log("Signature:", result.signature);
+    console.log("Message Hash:", result.messageHash);
+    console.log("Signed by Address:", result.address);
+  } else {
+    console.log("Signing failed or cancelled.");
+  }
+}
+
+async function handlePsbt() {
+  const signed = await signPsbt({
+    psbtBase64: "cHNidP8BAHECAAAA...",
+    signInputs: {
+      "1ef9...Jn1r": [0],
+      "bc1p...ra4w": [1, 2],
+    },
+    broadcast: false,
+  });
+
+  if (signed) {
+    console.log("Signed PSBT:", signed.psbt);
+    if (signed.txid) {
+      console.log("Broadcasted TXID:", signed.txid);
+    }
+  }
+};
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas theme={theme} />
@@ -304,6 +345,20 @@ function USDBCoin() {
                     >
                       Mint USDB
                     </button>
+                    <div className="flex space-x-1">
+                    <button
+                      onClick={handleSign}
+                      className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+                    >
+                      Sign Message
+                    </button>
+                    <button
+                      onClick={handlePsbt}
+                      className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg "
+                    >
+                      Sign Psbt
+                    </button>
+                    </div>
                   </div>
                 </div>
 
