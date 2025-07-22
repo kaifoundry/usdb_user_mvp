@@ -1,19 +1,16 @@
 
-import { MOCK_BTC_PRICE } from "../constants/appContsants";
 
 interface MintPanelProps {
   btcDeposit: string;
   error: string;
   getBalanceResult: string | null;
-  mintAmount: string;
+  mintAmount: number;
   collateralRatio: string;
   liquidationPrice: string;
   requiredCollateralBTC: string;
   requiredCollateralSATs: string;
   handleBtcDeposit: (v: string) => void;
   handleMint: () => void;
-  handleSign: () => void;
-  handlePsbt: () => void;
 }
 
 export default function MintPanel({
@@ -27,8 +24,6 @@ export default function MintPanel({
   requiredCollateralSATs,
   handleBtcDeposit,
   handleMint,
-  handlePsbt,
-  handleSign,
 }: MintPanelProps) {
   return (
    <div className="w-full shrink-0">
@@ -134,7 +129,7 @@ export default function MintPanel({
                       Mint USDB
                     </button>
                     <div className="flex space-x-1">
-                    <button
+                    {/* <button
                       onClick={handleSign}
                       className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
                     >
@@ -145,7 +140,7 @@ export default function MintPanel({
                       className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg "
                     >
                       Sign Psbt
-                    </button>
+                    </button> */}
                     </div>
                   </div>
                 </div>
