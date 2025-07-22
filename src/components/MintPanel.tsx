@@ -109,7 +109,7 @@ export default function MintPanel({
                     <div className="text-sm text-muted space-y-2">
                       <div className="flex justify-between">
                         <span>BTC Price</span>
-                        <span>${MOCK_BTC_PRICE}</span>
+                        <span>$</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Collateral Ratio</span>

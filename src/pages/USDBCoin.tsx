@@ -13,15 +13,17 @@ import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
 import type { TabType } from "../types/tab";
 import { MIN_COLLATERAL_RATIO, MOCK_BTC_PRICE, MOCK_VAULTS } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
+import useBTCConverter from "../Hooks/useBTCConverter";
 
 
 function USDBCoin() {
-
-
+  const { satsToBtc, btcToSats } = useBTCConverter();
+  const sats = 5000;
+  const btc = satsToBtc(sats);
   const [activeTab, setActiveTab] = useState<TabType>("mint");
-  const [btcDeposit, setBtcDeposit] = useState("0.0005");
+  const [btcDeposit, setBtcDeposit] = useState(btc);
   const [btcDepositSats, setBtcDepositSats] = useState("--");
-  const [mintAmount, setMintAmount] = useState("");
+  const [mintAmount, setMintAmount] = useState("1000");
   const [collateralRatio, setCollateralRatio] = useState("--");
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
@@ -285,7 +287,7 @@ const handleWithdraw = () => {
           btcDeposit={btcDeposit}
           error={error}
           getBalanceResult={getBalanceResult}
-          mintAmount={mintAmount}
+          mintAmount={1000}
           collateralRatio={collateralRatio}
           liquidationPrice={liquidationPrice}
           requiredCollateralBTC={requiredCollateralBTC}
