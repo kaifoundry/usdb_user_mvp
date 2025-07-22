@@ -1,25 +1,37 @@
 import { useLocation } from "react-router-dom";
 import { useWallet } from "../api/connectWallet";
 import { Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-type HeaderProps = {
-  theme: "light" | "dark";
-  setTheme: (theme: "light" | "dark") => void;
-  toggleTheme?: () => void;
-  logo: string;
-};
+import type { Theme } from "../types/theme";
+import logo from "../assets/logowhite.png";
 
-export default function Header({
-  theme,
-  toggleTheme,
-  logo,
-}: HeaderProps) {
+export default function Header() {
   const { wallet, connectWallet, loading, disconnectWallet } =
     useWallet();
   const location = useLocation();
   const isAppPage = location.pathname === "/usdb";
   const [copied, setCopied] = useState(false);
+ const [theme, setTheme] = useState<Theme>(
+      localStorage.getItem("theme") === "light" ||
+        localStorage.getItem("theme") === "dark"
+        ? (localStorage.getItem("theme") as Theme)
+        : window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark"
+    );
+  
+    // Theme handling
+    useEffect(() => {
+      document.body.classList.toggle("light-mode", theme === "light");
+      localStorage.setItem("theme", theme);
+    }, [theme]);
+  
+    const toggleTheme = () => {
+      const newTheme = theme === "light" ? "dark" : "light";
+      setTheme(newTheme);
+      localStorage.setItem("theme", newTheme);
+    };
 
   return (
     <>

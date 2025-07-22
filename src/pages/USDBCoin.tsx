@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Wrench } from "lucide-react";
-import logo from "../assets/logowhite.png";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
 import SuccessModal from "../Modal/successModal";
@@ -10,59 +9,30 @@ import { getBalance } from "../api/getBalance";
 import { signMessage } from "../api/signMessage";
 import { MessageSigningProtocols } from "sats-connect";
 import { signPsbt } from "../api/signPsbt";
+import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
+import type { TabType } from "../types/tab";
+import { MIN_COLLATERAL_RATIO, MOCK_BTC_PRICE, MOCK_VAULTS } from "../constants/appContsants";
+import MintPanel from "../components/MintPanel";
 
-const MOCK_BTC_PRICE = 65000;
-const MIN_COLLATERAL_RATIO = 1.5;
-interface Vault {
-  id: number;
-  debt: number;
-  status?: string;
-  collateral: number;
-  timestamp?: string;
-}
-const MOCK_VAULTS: Vault[] = [
-  {
-    id: 1,
-    debt: 200.0,
-    collateral: 0.006154,
-    status: "In Progress",
-    timestamp: "about 20 hours ago",
-  },
-  { id: 2, debt: 500, collateral: 0.015385 },
-  { id: 3, debt: 100, collateral: 0.003077 },
-  { id: 4, debt: 1000, collateral: 0.030769 },
-];
 
 function USDBCoin() {
-  const [theme, setTheme] = useState<"light" | "dark">(
-    localStorage.getItem("theme") === "light" ||
-      localStorage.getItem("theme") === "dark"
-      ? (localStorage.getItem("theme") as "light" | "dark")
-      : window.matchMedia("(prefers-color-scheme: light)").matches
-      ? "light"
-      : "dark"
-  );
 
-  const [activeTab, setActiveTab] = useState<"mint" | "withdraw">("mint");
+
+  const [activeTab, setActiveTab] = useState<TabType>("mint");
   const [btcDeposit, setBtcDeposit] = useState("0.0005");
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("");
   const [collateralRatio, setCollateralRatio] = useState("--");
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
-  const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("--");
-  const [selectedVaults, setSelectedVaults] = useState<number[]>([]);
+  const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("5000");
+const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState("");
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
-
-  // Theme handling
-  useEffect(() => {
-    document.body.classList.toggle("light-mode", theme === "light");
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<RuneBalance[] | null>(null);
 
   useEffect(() => {
     if (wallet) {
@@ -82,14 +52,8 @@ function USDBCoin() {
     }
   }, [paymentAddress]);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-  };
-
-  //   const handleBtcDeposit = (value: string) => {
-  //   setBtcDeposit(value);
+//   const handleBtcDeposit = (value: string) => {
+//   setBtcDeposit(value);
 
   //   const inputAmount = parseFloat(value);
   //   if (isNaN(inputAmount)) {
@@ -127,6 +91,26 @@ function USDBCoin() {
     setBtcDeposit(value);
   };
 
+
+ useEffect(() => {
+  const fetchBalances = async () => {
+    try {
+      const result = await getRunesBalance();
+      if (result) {
+        setGetRunesBalanceResult(result);
+        console.log("Rune Balances:", result);
+      } else {
+        console.log("No rune balances returned.");
+      }
+    } catch (err) {
+      console.log("Error fetching rune balances:", err);
+    }
+  };
+
+  fetchBalances();
+}, []);
+
+
   useEffect(() => {
     const btc = parseFloat(btcDeposit);
     if (!btc || btc <= 0) {
@@ -163,31 +147,36 @@ function USDBCoin() {
     setRequiredCollateralSATs(requiredSATs.toFixed(0));
   }, [btcDeposit]);
 
-  const toggleVaultSelection = (id: number) => {
-    setSelectedVaults((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    );
-  };
+const toggleVaultSelection = (vaultKey: string) => {
+  setSelectedVaults((prev) =>
+    prev.includes(vaultKey)
+      ? prev.filter((v) => v !== vaultKey)
+      : [...prev, vaultKey]
+  );
+};
 
-  const totalSelectedDebt = MOCK_VAULTS.filter((v) =>
-    selectedVaults.includes(v.id)
-  ).reduce((sum, v) => sum + v.debt, 0);
+// const totalSelectedDebt = getRunesBalanceResult
+//   ?.filter((v) => selectedVaults.includes(v.inscriptionId || v.runeName))
+//   .reduce((sum, v) => sum + (v.debt || 0), 0) || 0;
 
-  const totalSelectedCollateral = MOCK_VAULTS.filter((v) =>
-    selectedVaults.includes(v.id)
-  ).reduce((sum, v) => sum + v.collateral, 0);
+// const totalSelectedCollateral = getRunesBalanceResult
+//   ?.filter((v) => selectedVaults.includes(v.inscriptionId || v.runeName))
+//   .reduce((sum, v) => sum + (v.collateral || 0), 0) || 0;
 
-  const handleWithdraw = () => {
-    if (selectedVaults.length === 0)
-      return alert("Please select at least one vault to withdraw.");
-    alert(
-      `Withdrawal submitted for ${
-        selectedVaults.length
-      } vault(s). Total to repay: ${totalSelectedDebt.toFixed(2)} USDB.`
-    );
-  };
+const handleWithdraw = () => {
+  if (selectedVaults.length === 0)
+    return alert("Please select at least one vault to withdraw.");
+  // alert(
+  //   `Withdrawal submitted for ${selectedVaults.length} vault(s). Total to repay: 
+  //   ${totalSelectedDebt.toFixed(
+  //     2
+  //   )}
+  //    USDB.`
+  // );
+};
 
-  const handleTabChange = (tab: "mint" | "withdraw") => {
+
+  const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
   };
 
@@ -250,14 +239,8 @@ function USDBCoin() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <BackgroundCanvas theme={theme} />
-
-      <Header
-        theme={theme}
-        setTheme={setTheme}
-        logo={logo}
-        toggleTheme={toggleTheme}
-      />
+      <BackgroundCanvas  />
+      <Header/>
 
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
         <div className="test-net-text border md:border-[1.2px] border-dashed bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)] rounded-xl md:rounded-2xl py-2.5 md:px-4 md:py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
@@ -298,124 +281,20 @@ function USDBCoin() {
                   })`,
                 }}
               >
-                <div className="w-full shrink-0">
-                  {/* Mint Panel */}
-                  <div className="mt-6 space-y-4">
-                    <div className="rounded-lg p-6 mt-6 app-input">
-                      <div className="flex items-center">
-                        <input
-                          type="number"
-                          value={btcDeposit}
-                          onChange={(e) => handleBtcDeposit(e.target.value)}
-                          placeholder="Deposit BTC"
-                          readOnly
-                          // className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
-                          className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
-                            error ? "text-red-500" : ""
-                          }`}
-                        />
-                        <span className="text-muted font-medium ml-4">BTC</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <div className="text-sm text-red-500 mt-3">{error}</div>
-                        <div
-                          className={`text-sm mt-3 ${
-                            error ? "text-red-500" : "text-gray-500"
-                          }`}
-                        >
-                          Balance:{" "}
-                          {getBalanceResult !== null
-                            ? `${(
-                                Number(getBalanceResult) / 100_000_000
-                              ).toFixed(8)} BTC`
-                            : "--"}
-                        </div>
-                      </div>
-                      {/* <div className="text-sm text-gray-500 mt-3 text-right">
-                        Balance:{" "}
-                        {getBalanceResult !== null
-                          ? `${(Number(getBalanceResult) / 100_000_000).toFixed(8)} BTC`
-                          : "--"}
-                      </div> */}
-                      {/* <div className="text-sm text-gray-500 mt-1 text-right">
-                        ≈ {btcDepositSats} SATs
-                      </div> */}
-                    </div>
-
-                    <div className="relative">
-                      <div className="absolute left-1/2 transform -translate-x-1/2 -top-8 w-[62px] h-[54px] app-card rounded-[12px] flex items-center justify-center shadow-md z-10 gap-2.5 opacity-100">
-                        <span className="text-lg ">↓</span>
-                      </div>
-
-                      <div className="border border-gray-200 rounded-xl p-6 bg-gray-50 mt-2 app-input app-input-readonly">
-                        <div className="flex items-center relative ">
-                          <input
-                            type="number"
-                            value={mintAmount}
-                            readOnly
-                            className="flex-1 bg-transparent w-full  pr-20 rounded-lg text-2xl focus:outline-none focus:ring-0 focus:border-transparent"
-                          />
-                          {!mintAmount && (
-                            <div className="absolute left-0 pointer-events-none flex-1">
-                              <span className="text-xl text-gray-400 font-normal">
-                                Mint USDB
-                              </span>
-                              <span className="text-sm text-gray-400 ml-2">
-                                (in multiples of 100)
-                              </span>
-                            </div>
-                          )}
-                          <span className="text-muted font-medium ml-4">
-                            USDB
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-sm text-muted space-y-2">
-                      <div className="flex justify-between">
-                        <span>BTC Price</span>
-                        <span>$</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Collateral Ratio</span>
-                        <span>{collateralRatio}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Liquidation Price</span>
-                        <span>{liquidationPrice}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Required Collateral</span>
-                        <span>
-                          {requiredCollateralBTC} BTC ≈ {requiredCollateralSATs}{" "}
-                          SATs
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleMint}
-                      className="w-full mt-20 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg text-lg"
-                    >
-                      Mint USDB
-                    </button>
-                    <div className="flex space-x-1">
-                      {/* <button
-                      onClick={handleSign}
-                      className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
-                    >
-                      Sign Message
-                    </button>
-                    <button
-                      onClick={handlePsbt}
-                      className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg "
-                    >
-                      Sign Psbt
-                    </button> */}
-                    </div>
-                  </div>
-                </div>
+                 <MintPanel
+          btcDeposit={btcDeposit}
+          error={error}
+          getBalanceResult={getBalanceResult}
+          mintAmount={mintAmount}
+          collateralRatio={collateralRatio}
+          liquidationPrice={liquidationPrice}
+          requiredCollateralBTC={requiredCollateralBTC}
+          requiredCollateralSATs={requiredCollateralSATs}
+          handleBtcDeposit={setBtcDeposit}
+          handleMint={() => setShowSuccessModal(true)}
+          handlePsbt={handlePsbt}
+          handleSign={handleSign}
+        />
 
                 <div className="w-full shrink-0">
                   {/* Withdraw Panel */}
@@ -424,10 +303,10 @@ function USDBCoin() {
                       <label className="text-sm text-muted">
                         Select vaults to close
                       </label>
-                      <input
+                      {/* <input
                         type="checkbox"
                         className="vault-checkbox w-5 h-5 pr-2"
-                        checked={selectedVaults.length === MOCK_VAULTS.length}
+                        checked={selectedVaults.length === getRunesBalanceResult.length}
                         onChange={() => {
                           if (selectedVaults.length === MOCK_VAULTS.length) {
                             setSelectedVaults([]);
@@ -435,21 +314,21 @@ function USDBCoin() {
                             setSelectedVaults(MOCK_VAULTS.map((v) => v.id));
                           }
                         }}
-                      />
+                      /> */}
                     </div>
 
                     <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
-                      {MOCK_VAULTS.map((vault) => (
+                      { getRunesBalanceResult && getRunesBalanceResult.map((vault) => (
                         <div
                           key={vault.id}
-                          className={`vault-item   p-4 rounded-lg ${
-                            selectedVaults.includes(vault.id)
+                          className={`vault-item flex items-center justify-between p-4 rounded-lg ${
+                            selectedVaults.includes(vault.id?? "")
                               ? "vault-item-selected"
                               : ""
                           }`}
                         >
                           {/* Header with status and timestamp */}
-                          {vault.status && (
+                          {/* {vault.status && (
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <span
@@ -510,34 +389,53 @@ function USDBCoin() {
                                 <span className="ml-1 ">6+</span>
                               </div>
                             </div>
-                          )}
+                          )} */}
                           <div className=" flex  items-center justify-between">
                             <div className="flex items-center gap-4">
                               <input
                                 type="checkbox"
                                 className="vault-checkbox w-5 h-5"
-                                checked={selectedVaults.includes(vault.id)}
-                                onChange={() => toggleVaultSelection(vault.id)}
+                                checked={selectedVaults.includes(vault.id ?? "")}
+                                onChange={() => toggleVaultSelection(vault.id ?? "")}
                               />
                               <div>
                                 <div className="font-semibold">
                                   Vault #{vault.id}
                                 </div>
                                 <div className="text-sm text-muted">
-                                  Collateral: {vault.collateral.toFixed(6)} BTC
+                                  Collateral: 5000 BTC
                                 </div>
                               </div>
                             </div>
                             <div className="text-right">
                               <div className="font-semibold">
-                                {vault.debt.toFixed(2)}  USDB
+                                {vault.amount}  {vault.runeName}
                               </div>
                               <div className="text-sm text-muted">Debt</div>
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="checkbox"
+                              className="vault-checkbox w-5 h-5"
+                              checked={selectedVaults.includes(vault.id?? "")}
+                              onChange={() => toggleVaultSelection(vault.id?? "")}
+                            />
+                            <div>
+                              <div className="font-semibold">Vault #{vault.id}</div>
+                              <div className="text-sm text-muted">
+                                Collateral: --- BTC
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">
+                              {vault.amount} {vault.runeName}
                             </div>
                           </div>
                         </div>
+                        
                       ))}
                     </div>
+                    
                     <div
                       className="mt-6 pt-4 border-t"
                       style={{ borderColor: "var(--card-border-color)" }}
@@ -546,11 +444,11 @@ function USDBCoin() {
                       <div className="text-sm text-muted space-y-2">
                         <div className="flex justify-between">
                           <span>Total to Repay</span>
-                          <span>{totalSelectedDebt.toFixed(2)} USDB</span>
+                          {/* <span>{totalSelectedDebt.toFixed(2)} USDB</span> */}
                         </div>
                         <div className="flex justify-between">
                           <span>Collateral to Withdraw</span>
-                          <span>{totalSelectedCollateral.toFixed(6)} BTC</span>
+                          {/* <span>{totalSelectedCollateral.toFixed(6)} BTC</span> */}
                         </div>
                       </div>
                     </div>
@@ -561,6 +459,9 @@ function USDBCoin() {
                       Withdraw Selected
                     </button>
                   </div>
+                  
+                  
+                </div>
                 </div>
               </div>
             </div>
@@ -569,7 +470,6 @@ function USDBCoin() {
         <SuccessModal
           show={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
-          theme={theme}
         />
       </main>
     </div>
