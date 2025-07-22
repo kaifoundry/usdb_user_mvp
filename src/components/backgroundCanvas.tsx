@@ -1,16 +1,21 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import type { Theme } from "../types/theme";
 
-type Props = {
-  theme: 'light' | 'dark';
-};
 
-const BackgroundCanvas: React.FC<Props> = ({ theme }) => {
+const BackgroundCanvas: React.FC= () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<any[]>([]);
   const targetScrollYRef = useRef(0);
   const currentScrollYRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
-
+const [theme, setTheme] = useState<Theme>(
+      localStorage.getItem("theme") === "light" ||
+        localStorage.getItem("theme") === "dark"
+        ? (localStorage.getItem("theme") as Theme)
+        : window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark"
+    );
   useEffect(() => {
     if (!canvasRef.current) return;
 

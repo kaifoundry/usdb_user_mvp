@@ -1,11 +1,22 @@
+import { useState } from "react";
+import type { Theme } from "../types/theme";
+
+
 // components/SuccessModal.tsx
 type SuccessModalProps = {
   show: boolean;
   onClose: () => void;
-  theme: 'light' | 'dark';
 };
 
-const SuccessModal = ({ show, onClose, theme }: SuccessModalProps) => {
+const SuccessModal = ({ show, onClose, }: SuccessModalProps) => {
+ const [theme, setTheme] = useState<Theme>(
+      localStorage.getItem("theme") === "light" ||
+        localStorage.getItem("theme") === "dark"
+        ? (localStorage.getItem("theme") as Theme)
+        : window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark"
+    );
   if (!show) return null;
 
   return (

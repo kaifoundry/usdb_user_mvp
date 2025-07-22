@@ -1,44 +1,18 @@
 
-import React, { useEffect, useState } from "react";
-import logo from "../assets/logowhite.png";
+import React, { useEffect } from "react";
 import Header from "../Layout/Header";
 import Footer from "../Layout/Footer";
 import Faq from "../components/faq";
 import type { AccordionToggleHandler } from "../types/faq";
 import Features from "../components/features";
-import Howitworks from "../components/how-it-works";
+import Howitworks from "../components/howItWorks";
 import ProtocolStats from "../components/protocolStats";
 import HeroSection from "../components/heroSection";
 import WhitepaperSection from "../components/whitepaperSection";
 import BackgroundCanvas from "../components/backgroundCanvas";
-import AIAssistantSection from "../components/aiAssistantSection";
-import { useAIAssistant } from "../Hooks/useAIAssistant";
-const MOCK_WALLET = {
-  address: "bc1q...xyuv",
-  btcBalance: 2.5,
-  usdbBalance: 10000,
-};
+
 const LandingPage: React.FC = () => {
-  const [theme, setTheme] = useState<"light" | "dark">(
-    localStorage.getItem("theme") === "light" ||
-      localStorage.getItem("theme") === "dark"
-      ? (localStorage.getItem("theme") as "light" | "dark")
-      : window.matchMedia("(prefers-color-scheme: light)").matches
-      ? "light"
-      : "dark"
-  );
-
-  // Theme handling
-  useEffect(() => {
-    document.body.classList.toggle("light-mode", theme === "light");
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-  };
+ 
 
  
   // Scroll animation for elements
@@ -76,25 +50,11 @@ const LandingPage: React.FC = () => {
     });
   };
 
-  // AI Assistant
-//   const {
-//   aiPrompt,
-//   setAiPrompt,
-//   aiResponse,
-//   setAiResponse,
-//   aiLoading,
-//   handleAiSubmit,
-// } = useAIAssistant();
 
   return (
     <div>
-      <BackgroundCanvas theme={theme} />
-      {/* Header */}
+      <BackgroundCanvas/>
       <Header
-        theme={theme}
-        setTheme={setTheme}
-        logo={logo}
-        toggleTheme={toggleTheme}
       />
 
       {/* Main Content */}
