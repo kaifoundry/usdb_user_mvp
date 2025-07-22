@@ -273,11 +273,12 @@ const handleMint = async () => {
   data: { modifiedPsbt: string; selectedInputs: any[] },
   paymentAddress: string
 ) => {
-  const { modifiedPsbt } = data;
-
+  const { modifiedPsbt ,selectedInputs} = data;
+const inputIndexes: number[] = selectedInputs.map((_, index) => index);
+console.log("inputIndexes:", inputIndexes);
   // 🔑 Record<string, number[]> — keys: addresses, values: input indexes
   const signInputs: Record<string, number[]> = {
-    [paymentAddress]: [0],
+    [paymentAddress]: inputIndexes,
   };
 
   console.log("🖊️ Signing with:", { signInputs });
