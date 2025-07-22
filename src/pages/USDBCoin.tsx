@@ -362,7 +362,7 @@ async function handlePsbt() {
 
                     <button
                       onClick={handleMint}
-                      className="w-full mt-20 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+                      className="w-full mt-20 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg text-lg"
                     >
                       Mint USDB
                     </button>
@@ -455,7 +455,7 @@ async function handlePsbt() {
                     </div>
                     <button
                       onClick={handleWithdraw}
-                      className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+                      className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg text-lg"
                     >
                       Withdraw Selected
                     </button>
