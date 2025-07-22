@@ -24,6 +24,10 @@
   --text-logo-color:#FFFFFF;
    /* --text-logo-color:#141414; */
   --test-mode-text-color: #FFFFFF;
+  --text-status-color: #DBDBDB;
+   --status-box-bg:rgba(247, 233, 38, 0.08);
+  --status-box-border:rgba(247, 233, 38, 0.12);
+
 }
 
 .light-mode {
@@ -50,6 +54,9 @@
   --input-checked-bg: #6e6e6efa;
   --text-logo-color:#141414;
   --test-mode-text-color: #623F04;
+  --text-status-color: #333333;
+  --status-box-bg:rgba(247, 233, 38, 0.24);
+  --status-box-border:rgba(247, 233, 38, 0.4);
 }
 
 body {
@@ -57,6 +64,13 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+.status-box {
+  background-color: var(--status-box-bg);
+  border: 1px solid var(--status-box-border);
+}
+.status-text{
+  color: var(--text-status-color);
 }
 .logo-text{
   color: var(--text-logo-color);

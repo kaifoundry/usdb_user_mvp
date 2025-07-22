@@ -13,10 +13,21 @@ import { signPsbt } from "../api/signPsbt";
 
 const MOCK_BTC_PRICE = 65000;
 const MIN_COLLATERAL_RATIO = 1.5;
-
-
-const MOCK_VAULTS = [
-  { id: 1, debt: 200, collateral: 0.006154 },
+interface Vault {
+  id: number;
+  debt: number;
+  status?: string;
+  collateral: number;
+  timestamp?: string;
+}
+const MOCK_VAULTS: Vault[] = [
+  {
+    id: 1,
+    debt: 200.0,
+    collateral: 0.006154,
+    status: "In Progress",
+    timestamp: "about 20 hours ago",
+  },
   { id: 2, debt: 500, collateral: 0.015385 },
   { id: 3, debt: 100, collateral: 0.003077 },
   { id: 4, debt: 1000, collateral: 0.030769 },
@@ -24,7 +35,8 @@ const MOCK_VAULTS = [
 
 function USDBCoin() {
   const [theme, setTheme] = useState<"light" | "dark">(
-    localStorage.getItem("theme") === "light" || localStorage.getItem("theme") === "dark"
+    localStorage.getItem("theme") === "light" ||
+      localStorage.getItem("theme") === "dark"
       ? (localStorage.getItem("theme") as "light" | "dark")
       : window.matchMedia("(prefers-color-scheme: light)").matches
       ? "light"
@@ -32,7 +44,7 @@ function USDBCoin() {
   );
 
   const [activeTab, setActiveTab] = useState<"mint" | "withdraw">("mint");
-  const [btcDeposit, setBtcDeposit] = useState("100");
+  const [btcDeposit, setBtcDeposit] = useState("0.0005");
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("");
   const [collateralRatio, setCollateralRatio] = useState("--");
@@ -41,7 +53,7 @@ function USDBCoin() {
   const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("--");
   const [selectedVaults, setSelectedVaults] = useState<number[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [error, setError] = useState("");
+  const [error, setError] = useState("");
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
@@ -76,44 +88,44 @@ function USDBCoin() {
     localStorage.setItem("theme", newTheme);
   };
 
-//   const handleBtcDeposit = (value: string) => {
-//   setBtcDeposit(value);
+  //   const handleBtcDeposit = (value: string) => {
+  //   setBtcDeposit(value);
 
-//   const inputAmount = parseFloat(value);
-//   if (isNaN(inputAmount)) {
-//     setError("");
-//     return;
-//   }
-//   const availableBalance = Number(getBalanceResult) / 100_000_000;
+  //   const inputAmount = parseFloat(value);
+  //   if (isNaN(inputAmount)) {
+  //     setError("");
+  //     return;
+  //   }
+  //   const availableBalance = Number(getBalanceResult) / 100_000_000;
 
-//   if (inputAmount > availableBalance) {
-//     setError("Insufficient Balance");
-//   } else {
-//     setError("");
-//   }
-// };
-useEffect(() => {
-  const inputAmount = parseFloat(btcDeposit);
-  if (isNaN(inputAmount)) {
-    setError("");
-    return;
-  }
+  //   if (inputAmount > availableBalance) {
+  //     setError("Insufficient Balance");
+  //   } else {
+  //     setError("");
+  //   }
+  // };
+  useEffect(() => {
+    const inputAmount = parseFloat(btcDeposit);
+    if (isNaN(inputAmount)) {
+      setError("");
+      return;
+    }
 
-  if (getBalanceResult === null) {
-    return;
-  }
+    if (getBalanceResult === null) {
+      return;
+    }
 
-  const availableBalance = Number(getBalanceResult) / 100_000_000;
+    const availableBalance = Number(getBalanceResult) / 100_000_000;
 
-  if (inputAmount > availableBalance) {
-    setError("Insufficient Balance");
-  } else {
-    setError("");
-  }
-}, [btcDeposit, getBalanceResult]);
-const handleBtcDeposit = (value: string) => {
-  setBtcDeposit(value);
-};
+    if (inputAmount > availableBalance) {
+      setError("Insufficient Balance");
+    } else {
+      setError("");
+    }
+  }, [btcDeposit, getBalanceResult]);
+  const handleBtcDeposit = (value: string) => {
+    setBtcDeposit(value);
+  };
 
   useEffect(() => {
     const btc = parseFloat(btcDeposit);
@@ -129,11 +141,13 @@ const handleBtcDeposit = (value: string) => {
 
     const collateralValueUSD = btc * MOCK_BTC_PRICE;
 
-    const mintable = Math.floor(collateralValueUSD / MIN_COLLATERAL_RATIO / 100) * 100;
+    const mintable =
+      Math.floor(collateralValueUSD / MIN_COLLATERAL_RATIO / 100) * 100;
 
     setMintAmount(mintable.toFixed(0));
 
-    const actualRatio = mintable > 0 ? (collateralValueUSD / mintable) * 100 : 0;
+    const actualRatio =
+      mintable > 0 ? (collateralValueUSD / mintable) * 100 : 0;
     setCollateralRatio(`${actualRatio.toFixed(0)}`);
 
     const liquidation = mintable / btc;
@@ -167,9 +181,9 @@ const handleBtcDeposit = (value: string) => {
     if (selectedVaults.length === 0)
       return alert("Please select at least one vault to withdraw.");
     alert(
-      `Withdrawal submitted for ${selectedVaults.length} vault(s). Total to repay: ${totalSelectedDebt.toFixed(
-        2
-      )} USDB.`
+      `Withdrawal submitted for ${
+        selectedVaults.length
+      } vault(s). Total to repay: ${totalSelectedDebt.toFixed(2)} USDB.`
     );
   };
 
@@ -182,43 +196,58 @@ const handleBtcDeposit = (value: string) => {
   };
 
   async function handleSign() {
-  if (!paymentAddress) {
-    console.error("Payment address is null or undefined");
-    return;
-  }
+    if (!paymentAddress) {
+      console.error("Payment address is null or undefined");
+      return;
+    }
 
-  const result = await signMessage({
-    address: paymentAddress,
-    message: "Please sign this message for verification",
-    protocol: MessageSigningProtocols.ECDSA, 
-  });
+    const result = await signMessage({
+      address: paymentAddress,
+      message: "Please sign this message for verification",
+      protocol: MessageSigningProtocols.ECDSA,
+    });
 
-  if (result) {
-    console.log("Signature:", result.signature);
-    console.log("Message Hash:", result.messageHash);
-    console.log("Signed by Address:", result.address);
-  } else {
-    console.log("Signing failed or cancelled.");
-  }
-}
-
-async function handlePsbt() {
-  const signed = await signPsbt({
-    psbtBase64: "cHNidP8BAHECAAAA...",
-    signInputs: {
-      "1ef9...Jn1r": [0],
-      "bc1p...ra4w": [1, 2],
-    },
-    broadcast: false,
-  });
-
-  if (signed) {
-    console.log("Signed PSBT:", signed.psbt);
-    if (signed.txid) {
-      console.log("Broadcasted TXID:", signed.txid);
+    if (result) {
+      console.log("Signature:", result.signature);
+      console.log("Message Hash:", result.messageHash);
+      console.log("Signed by Address:", result.address);
+    } else {
+      console.log("Signing failed or cancelled.");
     }
   }
-};
+
+  async function handlePsbt() {
+    const signed = await signPsbt({
+      psbtBase64: "cHNidP8BAHECAAAA...",
+      signInputs: {
+        "1ef9...Jn1r": [0],
+        "bc1p...ra4w": [1, 2],
+      },
+      broadcast: false,
+    });
+
+    if (signed) {
+      console.log("Signed PSBT:", signed.psbt);
+      if (signed.txid) {
+        console.log("Broadcasted TXID:", signed.txid);
+      }
+    }
+  }
+
+  //status
+  const getStatusStyle = (status?: string) => {
+    switch (status) {
+      case "In Progress":
+        return " status-text status-box";
+      case "Completed":
+        return "bg-green-100 text-green-700 border border-green-200";
+      case "Failed":
+        return "bg-red-100 text-red-700 border border-red-200";
+      default:
+        return "hidden";
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas theme={theme} />
@@ -238,7 +267,10 @@ async function handlePsbt() {
 
         <div className="w-full max-w-lg mx-auto">
           <div className="app-card rounded-2xl p-2 md:px-8 md:pb-6">
-            <div className="flex border-b" style={{ borderColor: "var(--card-border-color)" }}>
+            <div
+              className="flex border-b"
+              style={{ borderColor: "var(--card-border-color)" }}
+            >
               <button
                 onClick={() => handleTabChange("mint")}
                 className={`tab flex-1 py-3 text-base font-medium ${
@@ -261,7 +293,9 @@ async function handlePsbt() {
               <div
                 className="flex w-full transition-transform duration-500 ease-in-out"
                 style={{
-                  transform: `translateX(${activeTab === "mint" ? "0%" : "-100%"})`,
+                  transform: `translateX(${
+                    activeTab === "mint" ? "0%" : "-100%"
+                  })`,
                 }}
               >
                 <div className="w-full shrink-0">
@@ -274,30 +308,29 @@ async function handlePsbt() {
                           value={btcDeposit}
                           onChange={(e) => handleBtcDeposit(e.target.value)}
                           placeholder="Deposit BTC"
-                           readOnly
+                          readOnly
                           // className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
-                         className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
-                              error
-                                ? "text-red-500"
-                                : ""
-                            }`}
+                          className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
+                            error ? "text-red-500" : ""
+                          }`}
                         />
                         <span className="text-muted font-medium ml-4">BTC</span>
                       </div>
-                       <div className="flex justify-between">
-                          <div className="text-sm text-red-500 mt-3">
-                            {error}
-                          </div>
-                          <div
-                            className={`text-sm mt-3 ${
-                              error ? "text-red-500" : "text-gray-500"
-                            }`}
-                          >
-                            Balance: {getBalanceResult !== null
-                          ? `${(Number(getBalanceResult) / 100_000_000).toFixed(8)} BTC`
-                          : "--"}
-                          </div>
+                      <div className="flex justify-between">
+                        <div className="text-sm text-red-500 mt-3">{error}</div>
+                        <div
+                          className={`text-sm mt-3 ${
+                            error ? "text-red-500" : "text-gray-500"
+                          }`}
+                        >
+                          Balance:{" "}
+                          {getBalanceResult !== null
+                            ? `${(
+                                Number(getBalanceResult) / 100_000_000
+                              ).toFixed(8)} BTC`
+                            : "--"}
                         </div>
+                      </div>
                       {/* <div className="text-sm text-gray-500 mt-3 text-right">
                         Balance:{" "}
                         {getBalanceResult !== null
@@ -342,7 +375,7 @@ async function handlePsbt() {
                     <div className="text-sm text-muted space-y-2">
                       <div className="flex justify-between">
                         <span>BTC Price</span>
-                        <span>${MOCK_BTC_PRICE}</span>
+                        <span>$</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Collateral Ratio</span>
@@ -355,7 +388,8 @@ async function handlePsbt() {
                       <div className="flex justify-between">
                         <span>Required Collateral</span>
                         <span>
-                          {requiredCollateralBTC} BTC ≈ {requiredCollateralSATs} SATs
+                          {requiredCollateralBTC} BTC ≈ {requiredCollateralSATs}{" "}
+                          SATs
                         </span>
                       </div>
                     </div>
@@ -367,7 +401,7 @@ async function handlePsbt() {
                       Mint USDB
                     </button>
                     <div className="flex space-x-1">
-                    {/* <button
+                      {/* <button
                       onClick={handleSign}
                       className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
                     >
@@ -408,31 +442,98 @@ async function handlePsbt() {
                       {MOCK_VAULTS.map((vault) => (
                         <div
                           key={vault.id}
-                          className={`vault-item flex items-center justify-between p-4 rounded-lg ${
+                          className={`vault-item   p-4 rounded-lg ${
                             selectedVaults.includes(vault.id)
                               ? "vault-item-selected"
                               : ""
                           }`}
                         >
-                          <div className="flex items-center gap-4">
-                            <input
-                              type="checkbox"
-                              className="vault-checkbox w-5 h-5"
-                              checked={selectedVaults.includes(vault.id)}
-                              onChange={() => toggleVaultSelection(vault.id)}
-                            />
-                            <div>
-                              <div className="font-semibold">Vault #{vault.id}</div>
-                              <div className="text-sm text-muted">
-                                Collateral: {vault.collateral.toFixed(6)} BTC
+                          {/* Header with status and timestamp */}
+                          {vault.status && (
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`inline-flex items-center px-3 py-0.5 rounded-lg text-base font-normal ${getStatusStyle(
+                                    vault.status || ""
+                                  )}`}
+                                >
+                                  {vault.status}
+                                </span>
+                                <div className="flex items-center  text-sm gap-1 font-normal text-[#666666]">
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M2 8C2 9.18669 2.35189 10.3467 3.01118 11.3334C3.67047 12.3201 4.60754 13.0892 5.7039 13.5433C6.80026 13.9974 8.00666 14.1162 9.17054 13.8847C10.3344 13.6532 11.4035 13.0818 12.2426 12.2426C13.0818 11.4035 13.6532 10.3344 13.8847 9.17054C14.1162 8.00666 13.9974 6.80026 13.5433 5.7039C13.0892 4.60754 12.3201 3.67047 11.3334 3.01118C10.3467 2.35189 9.18669 2 8 2C6.32263 2.00631 4.71265 2.66082 3.50667 3.82667L2 5.33333"
+                                      stroke="#DBDBDB"
+                                      stroke-opacity="0.9"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                    <path
+                                      d="M2 2V5.33333H5.33333"
+                                      stroke="#DBDBDB"
+                                      stroke-opacity="0.9"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                    <path
+                                      d="M8 4.66675V8.00008L10.6667 9.33341"
+                                      stroke="#DBDBDB"
+                                      stroke-opacity="0.9"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
+                                  {vault.timestamp}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center text-base font-normal text-[#308F00]">
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                                  />
+                                </svg>
+                                <span className="ml-1 ">6+</span>
                               </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold">
-                              {vault.debt.toFixed(2)} USDB
+                          )}
+                          <div className=" flex  items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <input
+                                type="checkbox"
+                                className="vault-checkbox w-5 h-5"
+                                checked={selectedVaults.includes(vault.id)}
+                                onChange={() => toggleVaultSelection(vault.id)}
+                              />
+                              <div>
+                                <div className="font-semibold">
+                                  Vault #{vault.id}
+                                </div>
+                                <div className="text-sm text-muted">
+                                  Collateral: {vault.collateral.toFixed(6)} BTC
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-muted">Debt</div>
+                            <div className="text-right">
+                              <div className="font-semibold">
+                                {vault.debt.toFixed(2)}  USDB
+                              </div>
+                              <div className="text-sm text-muted">Debt</div>
+                            </div>
                           </div>
                         </div>
                       ))}
