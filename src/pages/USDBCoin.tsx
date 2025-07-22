@@ -285,7 +285,7 @@ const handleMint = async () => {
   const signed = await signPsbt({
     psbtBase64: modifiedPsbt,
     signInputs,
-    broadcast: false,
+    broadcast: true,
   });
 
   if (signed) {
@@ -417,7 +417,7 @@ const handleMint = async () => {
                                   Vault #{vault.id}
                                 </div>
                                 <div className="text-sm text-muted">
-                                  Collateral: 5000 BTC
+                                  Collateral: {`${satsToBtc(5000)}`} BTC
                                 </div>
                               </div>
                             </div>
