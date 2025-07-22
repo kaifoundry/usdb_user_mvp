@@ -433,7 +433,7 @@ const handleWithdraw = () => {
                           </div>
                         </div>
                         
-                      ))}
+                      {/* ))} */}
                     </div>
                     
                     <div
@@ -460,12 +460,14 @@ const handleWithdraw = () => {
                     </button>
                   </div>
                   
-                  
+                 ) )}
                 </div>
+                
                 </div>
               </div>
             </div>
           </div>
+        </div>
         </div>
         <SuccessModal
           show={showSuccessModal}
