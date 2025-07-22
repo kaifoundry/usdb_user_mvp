@@ -32,7 +32,7 @@ function USDBCoin() {
   );
 
   const [activeTab, setActiveTab] = useState<"mint" | "withdraw">("mint");
-  const [btcDeposit, setBtcDeposit] = useState("");
+  const [btcDeposit, setBtcDeposit] = useState("100");
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("");
   const [collateralRatio, setCollateralRatio] = useState("--");
@@ -76,14 +76,33 @@ function USDBCoin() {
     localStorage.setItem("theme", newTheme);
   };
 
-  const handleBtcDeposit = (value: string) => {
-  setBtcDeposit(value);
+//   const handleBtcDeposit = (value: string) => {
+//   setBtcDeposit(value);
 
-  const inputAmount = parseFloat(value);
+//   const inputAmount = parseFloat(value);
+//   if (isNaN(inputAmount)) {
+//     setError("");
+//     return;
+//   }
+//   const availableBalance = Number(getBalanceResult) / 100_000_000;
+
+//   if (inputAmount > availableBalance) {
+//     setError("Insufficient Balance");
+//   } else {
+//     setError("");
+//   }
+// };
+useEffect(() => {
+  const inputAmount = parseFloat(btcDeposit);
   if (isNaN(inputAmount)) {
     setError("");
     return;
   }
+
+  if (getBalanceResult === null) {
+    return;
+  }
+
   const availableBalance = Number(getBalanceResult) / 100_000_000;
 
   if (inputAmount > availableBalance) {
@@ -91,9 +110,10 @@ function USDBCoin() {
   } else {
     setError("");
   }
+}, [btcDeposit, getBalanceResult]);
+const handleBtcDeposit = (value: string) => {
+  setBtcDeposit(value);
 };
-
-
 
   useEffect(() => {
     const btc = parseFloat(btcDeposit);
@@ -254,6 +274,7 @@ async function handlePsbt() {
                           value={btcDeposit}
                           onChange={(e) => handleBtcDeposit(e.target.value)}
                           placeholder="Deposit BTC"
+                           readOnly
                           // className="flex-1 bg-transparent text-xl text-gray-400 placeholder-gray-400 focus:outline-none focus:text-gray-900 font-normal"
                          className={`flex-1 bg-transparent text-xl placeholder-gray-400 focus:outline-none font-normal ${
                               error
@@ -341,12 +362,12 @@ async function handlePsbt() {
 
                     <button
                       onClick={handleMint}
-                      className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+                      className="w-full mt-20 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
                     >
                       Mint USDB
                     </button>
                     <div className="flex space-x-1">
-                    <button
+                    {/* <button
                       onClick={handleSign}
                       className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
                     >
@@ -357,7 +378,7 @@ async function handlePsbt() {
                       className="w-1/2 mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg "
                     >
                       Sign Psbt
-                    </button>
+                    </button> */}
                     </div>
                   </div>
                 </div>

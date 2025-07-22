@@ -29,7 +29,7 @@ const BackgroundCanvas: React.FC<Props> = ({ theme }) => {
       constructor(c: HTMLCanvasElement, color: string) {
         this.x = Math.random() * c.width;
         this.y = Math.random() * c.height;
-        this.sz = Math.random() * 1.5 + 0.5;
+        this.sz = Math.random() * 2 + 1;   //1.5 + 0.5
         this.sx = Math.random() * 0.5 - 0.25;
         this.sy = Math.random() * 0.5 - 0.25;
         this.color = color;

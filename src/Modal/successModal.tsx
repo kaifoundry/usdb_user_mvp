@@ -15,7 +15,7 @@ const SuccessModal = ({ show, onClose, theme }: SuccessModalProps) => {
       }`}
     >
       <div
-        className="p-8 rounded-xl text-center shadow-lg w-full max-w-3xl h-[340px] mx-4 flex flex-col items-center justify-center"
+        className="p-8 app-card rounded-xl text-center shadow-lg w-full max-w-3xl h-[340px] mx-4 flex flex-col items-center justify-center"
         style={{ backgroundColor: 'var(--bg-color)' }}
       >
         <div>
