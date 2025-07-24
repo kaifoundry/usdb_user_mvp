@@ -14,12 +14,13 @@ import type { TabType } from "../types/tab";
 import {
   MIN_COLLATERAL_RATIO,
   MOCK_BTC_PRICE,
-  MOCK_SATOSHI_PER_BTC
+  MOCK_SATOSHI_PER_BTC,
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
 import useBTCConverter from "../Hooks/useBTCConverter";
 import { getNetwork, type GetNetworkResponse } from "../api/getNetwork";
 import WithdrawPanel from "../components/WithdrawPanel";
+import MintModal from "../Modal/mintModal";
 
 export default function USDBCoin() {
   const { satsToBtc } = useBTCConverter();
@@ -28,15 +29,19 @@ export default function USDBCoin() {
   const [btcDeposit, setBtcDeposit] = useState(satsToBtc(MOCK_SATOSHI_PER_BTC));
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("1000");
-  const [collateralRatio, setCollateralRatio] = useState(MIN_COLLATERAL_RATIO.toString());
+  const [collateralRatio, setCollateralRatio] = useState(
+    MIN_COLLATERAL_RATIO.toString()
+  );
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
   const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("5000");
   const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [error, setError] = useState("");
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
-  const [networkResponse, setNetworkResponse] = useState<GetNetworkResponse | null>(null);
+  const [networkResponse, setNetworkResponse] =
+    useState<GetNetworkResponse | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
   const [vaults, setVaults] = useState<RuneBalance[]>([]);
@@ -49,7 +54,8 @@ export default function USDBCoin() {
         if (res.status === "success") setNetworkResponse(res.result);
 
         const response = await getAddresses();
-        if (response) setPaymentAddress(response.paymentAddress?.address || null);
+        if (response)
+          setPaymentAddress(response.paymentAddress?.address || null);
       })();
     }
   }, [wallet]);
@@ -141,9 +147,10 @@ export default function USDBCoin() {
     .filter((v) => v.id && selectedVaults.includes(v.id))
     .reduce((sum, v) => sum + Number(v.amount ?? 0), 0);
 
-  const totalCollateral = vaults
-    .filter((v) => v.id && selectedVaults.includes(v.id))
-    .reduce((sum) => sum + 5000, 0) / 100_000_000;
+  const totalCollateral =
+    vaults
+      .filter((v) => v.id && selectedVaults.includes(v.id))
+      .reduce((sum) => sum + 5000, 0) / 100_000_000;
 
   const handleWithdraw = () => {
     if (selectedVaults.length === 0) {
@@ -173,27 +180,27 @@ export default function USDBCoin() {
   };
 
   const handlePsbt = async (
-  data: { modifiedPsbt: string; selectedInputs: any[] },
-  paymentAddress: string
-) => {
-  const { modifiedPsbt ,selectedInputs} = data;
-const inputIndexes: number[] = selectedInputs.map((_, index) => index);
-  const signInputs: Record<string, number[]> = {
-    [paymentAddress]: inputIndexes,
-  };
-  const signed = await signPsbt({
-    psbtBase64: modifiedPsbt,
-    signInputs,
-    broadcast: true,
-  });
+    data: { modifiedPsbt: string; selectedInputs: any[] },
+    paymentAddress: string
+  ) => {
+    const { modifiedPsbt, selectedInputs } = data;
+    const inputIndexes: number[] = selectedInputs.map((_, index) => index);
+    const signInputs: Record<string, number[]> = {
+      [paymentAddress]: inputIndexes,
+    };
+    const signed = await signPsbt({
+      psbtBase64: modifiedPsbt,
+      signInputs,
+      broadcast: true,
+    });
 
-  if (signed) {
-    console.log("✅ Signed PSBT:", signed.psbt);
-    if (signed.txid) {
-      console.log("📡 Broadcasted TXID:", signed.txid);
+    if (signed) {
+      console.log("✅ Signed PSBT:", signed.psbt);
+      if (signed.txid) {
+        console.log("📡 Broadcasted TXID:", signed.txid);
+      }
     }
-  }
-};
+  };
 
   async function handleSign() {
     if (!paymentAddress) return;
@@ -205,6 +212,10 @@ const inputIndexes: number[] = selectedInputs.map((_, index) => index);
     console.log(result);
   }
 
+
+  const handleTransaction = () => {
+    setShowTransactionModal(true);
+  };
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
@@ -284,12 +295,31 @@ const inputIndexes: number[] = selectedInputs.map((_, index) => index);
             >
               {activeTab === "mint" ? "Mint USDB" : "Withdraw Selected"}
             </button>
+            {activeTab === "mint" && (
+              <button
+                onClick={handleTransaction}
+                className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
+              >
+                Transaction
+              </button>
+            )}
           </div>
         </div>
 
-        <SuccessModal
+        {/* <SuccessModal
           show={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
+        /> */}
+
+        <MintModal
+          show={showTransactionModal}
+          onClose={() => setShowTransactionModal(false)}
+          outputs={{
+            Address1: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+            Amount1: "2 BTC",
+            Address2: "0x742d35Cc6585C42c7C3ce7C3C0C3e1b1e52c9b2d",
+            Amount2: "6,500 USDB",
+          }}
         />
       </main>
     </div>
