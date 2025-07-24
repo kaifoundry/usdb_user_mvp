@@ -219,7 +219,9 @@ export default function USDBCoin() {
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
-      <Header />
+      <Header   
+      show={showTransactionModal}
+      onClose={() => setShowTransactionModal(false)}/>
 
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
         <div className="test-net-text border md:border-[1.2px] border-dashed bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)] rounded-xl md:rounded-2xl py-2.5 md:px-4 md:py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">

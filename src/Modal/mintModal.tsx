@@ -30,12 +30,10 @@ const MintModal = ({ show, onClose, outputs }: MintModalProps) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 ${
-        theme === 'light' ? 'bg-white/80' : 'bg-black/80'
-      }`}
+      className="fixed top-0 inset-0 w-full h-screen z-50 flex items-center justify-center transition-colors duration-300  modal-background "
     >
       <div
-        className="p-8 app-card rounded-xl text-center shadow-lg w-full max-w-2xl h-[340px] mx-4 flex flex-col items-center justify-center"
+        className="p-8 modal-card rounded-xl text-center shadow-lg w-full max-w-2xl h-auto mx-4 flex flex-col items-center justify-center"
         // style={{ backgroundColor: 'var(--bg-color)' }}
       >
         <div>

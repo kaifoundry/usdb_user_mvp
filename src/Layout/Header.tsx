@@ -8,8 +8,11 @@ import logo from "../assets/logowhite.png";
 import { getBalance } from "../api/getBalance";
 import useBTCConverter from "../Hooks/useBTCConverter";
 import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
-
-export default function Header() {
+type MintModalProps = {
+  show: boolean;
+  onClose: () => void;
+};
+export default function Header({ show, onClose}: MintModalProps) {
   const { wallet, connectWallet, loading, disconnectWallet } = useWallet();
   const location = useLocation();
   const isAppPage = location.pathname === "/usdb";
@@ -55,8 +58,10 @@ export default function Header() {
   return (
     <>
       <Toaster position="top-center" /> {/* <-- add this */}
-      <header className="header fixed w-full backdrop-blur-lg z-50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+    <header
+  className={`header fixed w-full backdrop-blur-lg ${show ? '' : 'z-30'} `}
+>
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center ">
           <div className="flex items-center">
             <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
               <div className="w-7 h-6 md:w-7 md:h-7 rounded-full overflow-hidden">
