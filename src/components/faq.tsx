@@ -1,7 +1,18 @@
 import type { AccordionToggleHandler } from "../types/faq";
 
 
-export default function Faq({ handleAccordionToggle }: { handleAccordionToggle: AccordionToggleHandler }) {
+export default function Faq() {
+
+  const handleAccordionToggle: AccordionToggleHandler = (e) => {
+    const details = document.querySelectorAll("details");
+    const currentDetail = e.currentTarget;
+
+    details.forEach((detail) => {
+      if (detail !== currentDetail) {
+        detail.open = false;
+      }
+    });
+  };
   return (
      <section id="faq" className="py-24">
           <div className="container mx-auto px-6 max-w-4xl">
