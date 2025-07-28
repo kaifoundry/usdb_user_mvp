@@ -1,4 +1,5 @@
 import { type RuneBalance } from "../api/getRunesBalance";
+import type { CombinedTransactionStatus } from "../types/transactionApiResponse";
 
 interface Props {
   vaults: RuneBalance[];
@@ -9,6 +10,7 @@ interface Props {
   totalDebt: number;
   totalCollateral: number;
   handleWithdraw: () => void;
+  transactionStatus: CombinedTransactionStatus | null;
 }
 
 export default function WithdrawPanel({
@@ -19,54 +21,107 @@ export default function WithdrawPanel({
   allSelected,
   totalDebt,
   totalCollateral,
+  transactionStatus
 }: Props) {
+  const isConfirmed = transactionStatus?.primary?.confirmed === true;
+
   return (
     <>
       <div className="flex items-center justify-between mt-6">
         <label className="text-sm text-muted">Select vaults to close</label>
-        <button onClick={toggleSelectAll} className="text-sm underline">
-          {allSelected ? "Deselect All" : "Select All"}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Select All</span>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 vault-checkbox"
+            disabled={!isConfirmed}
+          />
+        </div>
       </div>
+
       <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
         {vaults
-          .filter((vault) => vault.id !== undefined) 
-          .map((vault) => (
-            <div
-              key={vault.id}
-              className={`vault-item flex justify-between p-4 rounded-lg ${
-                selectedVaults.includes(vault.id!) ? "vault-item-selected" : ""
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <input
-                  type="checkbox"
-                  className="vault-checkbox w-5 h-5"
-                  checked={selectedVaults.includes(vault.id!)}
-                  onChange={() => toggleVault(vault.id!)}
-                />
-                <div>
-                  <div className="font-semibold">Vault #{vault.id}</div>
-                  <div className="text-sm text-muted">
-                    Collateral: 5000 sats
+          .filter((vault) => vault.id !== undefined)
+          .map((vault, index) => {
+            const isSelected = selectedVaults.includes(vault.id!);
+
+            return (
+              <div
+                key={index}
+                className={`vault-item p-4 rounded-lg border ${
+                  !isConfirmed
+                    ? "border-[#5E582F] bg-[#1A1A1A]"
+                    : isSelected
+                    ? "vault-item-selected"
+                    : "border-[#333]"
+                }`}
+              >
+                {!isConfirmed && (
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 bg-[#5E582F] text-white rounded-md">
+                        In Progress
+                      </span>
+                      <span className="text-xs text-muted">
+                        about 20 hours ago
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-green-500 gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                      <span>6+</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isConfirmed && (
+                      <input
+                        type="checkbox"
+                        className="vault-checkbox w-5 h-5"
+                        checked={isSelected}
+                        onChange={() => toggleVault(vault.id!)}
+                      />
+                    )}
+                    <div>
+                      <div className="font-semibold">Vault #{vault.id}</div>
+                      <div className="text-sm text-muted">
+                        Collateral: 5000 sats
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">
+                      {vault.amount} {vault.runeName}
+                    </div>
+                    <div className="text-sm text-muted">Debt</div>
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-semibold">
-                  {vault.amount} {vault.runeName}
-                </div>
-                <div className="text-sm text-muted">Debt</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
-      <div className="mt-6 pt-4 border-t">
+
+      <div className="mt-6 pt-4 border-t border-[#333]">
         <div className="text-lg font-semibold mb-4">Summary</div>
         <div className="text-sm text-muted space-y-2">
           <div className="flex justify-between">
             <span>Total to Repay</span>
-            <span>{totalDebt.toFixed(2)} USDB</span>
+            <span>${totalDebt.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Collateral to Withdraw</span>
