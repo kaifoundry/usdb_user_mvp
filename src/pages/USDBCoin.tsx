@@ -2,51 +2,69 @@ import { useEffect, useState } from "react";
 import { Wrench } from "lucide-react";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
-import SuccessModal from "../Modal/successModal";
 import { useWallet } from "../api/connectWallet";
 import { getAddresses } from "../api/getAddresses";
 import { getBalance } from "../api/getBalance";
-import { signMessage } from "../api/signMessage";
-import { MessageSigningProtocols } from "sats-connect";
+// import { signMessage } from "../api/signMessage";
+// import { MessageSigningProtocols } from "sats-connect";
 import { signPsbt } from "../api/signPsbt";
 import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
 import type { TabType } from "../types/tab";
 import {
   MIN_COLLATERAL_RATIO,
   MOCK_BTC_PRICE,
-  MOCK_VAULTS,
+  MOCK_SATOSHI_PER_BTC,
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
 import useBTCConverter from "../Hooks/useBTCConverter";
+import { getNetwork, type GetNetworkResponse } from "../api/getNetwork";
+import WithdrawPanel from "../components/WithdrawPanel";
+import MintModal from "../Modal/mintModal";
+import toast from "react-hot-toast";
+import type {
+  MintApiResponse,
+  MintData,
+  OutputData,
+} from "../types/mintApiResponse";
+import type { CombinedTransactionStatus, TransactionApiResponse } from "../types/transactionApiResponse";
 
-
-function USDBCoin() {
-  const { satsToBtc, btcToSats } = useBTCConverter();
-  const sats = 5000;
-  const btc = satsToBtc(sats);
+export default function USDBCoin() {
+  const { satsToBtc } = useBTCConverter();
   const [activeTab, setActiveTab] = useState<TabType>("mint");
-  const [btcDeposit, setBtcDeposit] = useState(btc);
+  const [btcDeposit, setBtcDeposit] = useState(satsToBtc(MOCK_SATOSHI_PER_BTC));
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("1000");
-  const [collateralRatio, setCollateralRatio] = useState("--");
+  const [collateralRatio, setCollateralRatio] = useState(
+    MIN_COLLATERAL_RATIO.toString()
+  );
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
   const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("5000");
   const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState("");
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
+  const [networkResponse, setNetworkResponse] =
+    useState<GetNetworkResponse | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
-  const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<
-    RuneBalance[] | null
-  >(null);
+  const [vaults, setVaults] = useState<RuneBalance[]>([]);
+  const [allSelected, setAllSelected] = useState(false);
+  const [modalOutputs, setModalOutputs] = useState<OutputData | null>(null);
+  const [mintData, setMintData] = useState<MintData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [transactionStatus, setTransactionStatus] =
+    useState<CombinedTransactionStatus | null>(null);
 
   useEffect(() => {
     if (wallet) {
       (async () => {
+        const res = await getNetwork();
+        if (res.status === "success") setNetworkResponse(res.result);
+
         const response = await getAddresses();
-        setPaymentAddress(response.paymentAddress?.address || null);
+        if (response)
+          setPaymentAddress(response.paymentAddress?.address || null);
       })();
     }
   }, [wallet]);
@@ -60,67 +78,32 @@ function USDBCoin() {
     }
   }, [paymentAddress]);
 
-  //   const handleBtcDeposit = (value: string) => {
-  //   setBtcDeposit(value);
-
-  //   const inputAmount = parseFloat(value);
-  //   if (isNaN(inputAmount)) {
-  //     setError("");
-  //     return;
-  //   }
-  //   const availableBalance = Number(getBalanceResult) / 100_000_000;
-
-  //   if (inputAmount > availableBalance) {
-  //     setError("Insufficient Balance");
-  //   } else {
-  //     setError("");
-  //   }
-  // };
   useEffect(() => {
     const inputAmount = parseFloat(btcDeposit);
     if (isNaN(inputAmount)) {
       setError("");
       return;
     }
-
-    if (getBalanceResult === null) {
-      return;
-    }
+    if (getBalanceResult === null) return;
 
     const availableBalance = Number(getBalanceResult) / 100_000_000;
-
-    if (inputAmount > availableBalance) {
-      setError("Insufficient Balance");
-    } else {
-      setError("");
-    }
+    setError(inputAmount > availableBalance ? "Insufficient Balance" : "");
   }, [btcDeposit, getBalanceResult]);
-  const handleBtcDeposit = (value: string) => {
-    setBtcDeposit(value);
-  };
 
   useEffect(() => {
-    const fetchBalances = async () => {
-      try {
+    if (wallet) {
+      (async () => {
         const result = await getRunesBalance();
-        if (result) {
-          setGetRunesBalanceResult(result);
-          console.log("Rune Balances:", result);
-        } else {
-          console.log("No rune balances returned.");
-        }
-      } catch (err) {
-        console.log("Error fetching rune balances:", err);
-      }
-    };
-
-    fetchBalances();
-  }, []);
+        console.log("Vaults:", result);
+        if (result) setVaults(result);
+      })();
+    }
+  }, [wallet]);
 
   useEffect(() => {
     const btc = parseFloat(btcDeposit);
     if (!btc || btc <= 0) {
-      setMintAmount("");
+      setMintAmount("1000");
       setCollateralRatio("--");
       setLiquidationPrice("$0.00");
       setBtcDepositSats("--");
@@ -129,15 +112,11 @@ function USDBCoin() {
       return;
     }
 
+    const mintable = 1000; // fixed
     const collateralValueUSD = btc * MOCK_BTC_PRICE;
-
-    const mintable =
-      Math.floor(collateralValueUSD / MIN_COLLATERAL_RATIO / 100) * 100;
+    const actualRatio = (collateralValueUSD / mintable) * 100;
 
     setMintAmount(mintable.toFixed(0));
-
-    const actualRatio =
-      mintable > 0 ? (collateralValueUSD / mintable) * 100 : 0;
     setCollateralRatio(`${actualRatio.toFixed(0)}`);
 
     const liquidation = mintable / btc;
@@ -153,175 +132,239 @@ function USDBCoin() {
     setRequiredCollateralSATs(requiredSATs.toFixed(0));
   }, [btcDeposit]);
 
-  const toggleVaultSelection = (vaultKey: string) => {
-    setSelectedVaults((prev) =>
-      prev.includes(vaultKey)
-        ? prev.filter((v) => v !== vaultKey)
-        : [...prev, vaultKey]
-    );
-  };
+  const handleMint = async () => {
+    const apiUrl = `${import.meta.env.VITE_API_URL}/mint-btc-lock`;
+    const destination = wallet?.ordinalsAddress?.address;
+    const btcAddress = wallet?.paymentAddress?.address;
 
-  // const totalSelectedDebt = getRunesBalanceResult
-  //   ?.filter((v) => selectedVaults.includes(v.inscriptionId || v.runeName))
-  //   .reduce((sum, v) => sum + (v.debt || 0), 0) || 0;
-
-  // const totalSelectedCollateral = getRunesBalanceResult
-  //   ?.filter((v) => selectedVaults.includes(v.inscriptionId || v.runeName))
-  //   .reduce((sum, v) => sum + (v.collateral || 0), 0) || 0;
-
-  const handleWithdraw = () => {
-    if (selectedVaults.length === 0)
-      return alert("Please select at least one vault to withdraw.");
-    // alert(
-    //   `Withdrawal submitted for ${selectedVaults.length} vault(s). Total to repay:
-    //   ${totalSelectedDebt.toFixed(
-    //     2
-    //   )}
-    //    USDB.`
-    // );
-  };
-
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-  };
-
-const handleMint = async () => {
-  const apiUrl = import.meta.env.VITE_API_URL;
-
-  if (!apiUrl) {
-    console.error("API URL is not defined in environment variables.");
-    return {
-      success: false,
-      message: "API URL is not defined.",
-    };
-  }
-
-  const payload = {
-    destination: wallet?.ordinalsAddress?.address,
-    btcAddress: wallet?.paymentAddress?.address,
-  };
-
-  console.log("🔍 Sending payload:", payload);
-
-  if (!payload.destination || !payload.btcAddress) {
-    console.error("❌ Missing destination or btcAddress in payload.");
-    return {
-      success: false,
-      message: "Missing destination or btcAddress in payload.",
-    };
-  }
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ API responded with error:", errorText);
-      throw new Error(`HTTP ${response.status} — ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ API response:", data);
-
-    // ---- Call handlePsbt after successful mint ----
-    if (data){
-    await handlePsbt(data?.finalPsbt,payload.btcAddress);
-  }
-    return {
-      success: true,
-      data,
-    };
-
-  } catch (error: unknown) {
-    return {
-      success: false,
-      message: (error as Error).message,
-    };
-  }
-};
-
-
-
-  async function handleSign() {
-    if (!paymentAddress) {
-      console.error("Payment address is null or undefined");
+    if (!apiUrl || !destination || !btcAddress) {
+      console.error("❌ Missing API URL or wallet addresses");
       return;
     }
 
-    const result = await signMessage({
-      address: paymentAddress,
-      message: "Please sign this message for verification",
-      protocol: MessageSigningProtocols.ECDSA,
-    });
+    const payload = { destination, btcAddress };
+    setLoading(true);
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        console.error("❌ Mint API request failed:", response.statusText);
+        return;
+      }
+      const data: MintApiResponse = await response.json();
+      console.log("data:", data);
+      setMintData({ data, paymentAddress: btcAddress });
+      const outputsArray =
+        data?.finalPsbt?.userVisibleOutputs?.map((outputObj) => {
+          const address = Object.keys(outputObj)[0];
+          const amount = outputObj[address];
+          return {
+            address,
+            amount: `${amount} BTC`,
+          };
+        }) || [];
 
-    if (result) {
-      console.log("Signature:", result.signature);
-      console.log("Message Hash:", result.messageHash);
-      console.log("Signed by Address:", result.address);
-    } else {
-      console.log("Signing failed or cancelled.");
+      setModalOutputs(outputsArray);
+      setShowTransactionModal(true);
+    } catch (err) {
+      console.error("❌ Mint request error:", err);
+    } finally {
+      setLoading(false);
     }
-  }
-
- const handlePsbt = async (
-  data: { modifiedPsbt: string; selectedInputs: any[] },
-  paymentAddress: string
-) => {
-  const { modifiedPsbt ,selectedInputs} = data;
-const inputIndexes: number[] = selectedInputs.map((_, index) => index);
-console.log("inputIndexes:", inputIndexes);
-  // 🔑 Record<string, number[]> — keys: addresses, values: input indexes
-  const signInputs: Record<string, number[]> = {
-    [paymentAddress]: inputIndexes,
   };
 
-  console.log("🖊️ Signing with:", { signInputs });
+  const handlePsbt = async () => {
+    if (!mintData) {
+      console.warn("⚠️ No mint data available.");
+      return;
+    }
+    const { data, paymentAddress } = mintData;
+    const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
+    const selectedInputs = data.finalPsbt?.selectedInputs;
 
-  const signed = await signPsbt({
-    psbtBase64: modifiedPsbt,
-    signInputs,
-    broadcast: true,
+    if (!modifiedPsbt || !selectedInputs?.length) {
+      console.error("❌ Invalid PSBT or inputs.");
+      return;
+    }
+    const inputIndexes = selectedInputs.map((_, idx) => idx);
+    const signInputs: Record<string, number[]> = {
+      [paymentAddress]: inputIndexes,
+    };
+    setLoading(true);
+    try {
+      const signed = await signPsbt({
+        psbtBase64: modifiedPsbt,
+        signInputs,
+        broadcast: true,
+      });
+      if (signed?.psbt) {
+        toast.success("✅ PSBT signed successfully!");
+        console.log("✅ Signed PSBT:", signed.psbt);
+      }
+
+      if (signed?.txid) {
+        console.log("📡 Broadcasted TXID:", signed.txid);
+      }
+    } catch (err) {
+      console.error("❌ Signing failed:", err);
+    } finally {
+      setShowTransactionModal(false);
+      setLoading(false);
+    }
+  };
+
+  const processedVaults = vaults.flatMap((vault) => {
+    if (vault.amount > 1000) {
+      const splits: RuneBalance[] = [];
+      let remaining = vault.amount;
+      let index = 1;
+      while (remaining > 0) {
+        const chunk = remaining >= 1000 ? 1000 : remaining;
+        splits.push({
+          ...vault,
+          id: `${vault.id}-${index}`,
+          amount: chunk,
+        });
+        remaining -= chunk;
+        index++;
+      }
+      return splits;
+    } else {
+      return [vault];
+    }
   });
 
-  if (signed) {
-    console.log("✅ Signed PSBT:", signed.psbt);
-    if (signed.txid) {
-      console.log("📡 Broadcasted TXID:", signed.txid);
+  const toggleVault = (id: string) => {
+    setSelectedVaults((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedVaults([]);
+    } else {
+      const allIds = processedVaults
+        .map((v) => v.id)
+        .filter((id): id is string => !!id);
+      setSelectedVaults(allIds);
     }
-  }
-};
+    setAllSelected(!allSelected);
+  };
 
+  useEffect(() => {
+    setAllSelected(
+      processedVaults.length > 0 &&
+        selectedVaults.length === processedVaults.length
+    );
+  }, [selectedVaults, processedVaults]);
 
+  const totalDebt = processedVaults
+    .filter((v) => v.id && selectedVaults.includes(v.id))
+    .reduce((sum, v) => sum + Number(v.amount ?? 0), 0);
 
-  //status
-  const getStatusStyle = (status?: string) => {
-    switch (status) {
-      case "In Progress":
-        return " status-text status-box";
-      case "Completed":
-        return "bg-green-100 text-green-700 border border-green-200";
-      case "Failed":
-        return "bg-red-100 text-red-700 border border-red-200";
-      default:
-        return "hidden";
+  const totalCollateral =
+    processedVaults
+      .filter((v) => v.id && selectedVaults.includes(v.id))
+      .reduce((sum, _) => sum + 5000, 0) / 100_000_000;
+
+useEffect(() => {
+  const fetchTxStatus = async (): Promise<void> => {
+    const selectedInputs = mintData?.data?.finalPsbt?.selectedInputs;
+    const txids = selectedInputs?.map((input) => input?.txid).filter(Boolean);
+
+    if (!txids || txids.length === 0) {
+      console.error("❌ TXIDs are missing");
+      return;
+    }
+
+    const networkName = networkResponse?.bitcoin?.name?.toLowerCase();
+    const network =
+      networkName === "mainnet"
+        ? ""
+        : networkName === "testnet3"
+        ? "testnet"
+        : networkName;
+
+    const primaryApiUrl = `${import.meta.env.VITE_NETWORK_API_URL}/${network}/api/tx/${txids[0]}/status`;
+
+    const mempoolBase = `${import.meta.env.VITE_NETWORK_API_URL}/${network}/api/v1/transaction-times`;
+    const mempoolQuery = txids.map((id) => `txId[]=${id}`).join("&");
+    console.log("Fetching mempool data with query:", mempoolQuery);
+    const mempoolUrl = `${mempoolBase}?${mempoolQuery}`;
+
+    try {
+      const [primaryResponse, mempoolResponse] = await Promise.all([
+        fetch(primaryApiUrl),
+        fetch(mempoolUrl),
+      ]);
+
+      if (!primaryResponse.ok || !mempoolResponse.ok) {
+        throw new Error(
+          `HTTP error(s): ${primaryResponse.status}, ${mempoolResponse.status}`
+        );
+      }
+
+      const primaryData: TransactionApiResponse = await primaryResponse.json();
+      const mempoolTimestamps: number[] = await mempoolResponse.json();
+
+      const combinedStatus: CombinedTransactionStatus = {
+        primary: primaryData,
+        mempoolTimestamps,
+      };
+
+      setTransactionStatus(combinedStatus);
+      console.log("✅ Combined Transaction Status:", combinedStatus);
+    } catch (error) {
+      console.error("❌ Error fetching transaction statuses:", error);
     }
   };
+
+  if (mintData && networkResponse) {
+    fetchTxStatus();
+  }
+}, [mintData, networkResponse]);
+
+
+ 
+
+  const handleWithdraw = () => {
+    if (selectedVaults.length === 0) {
+      alert("Select at least one vault to withdraw.");
+      return;
+    }
+    alert(`Withdrawal submitted for ${selectedVaults.length} vault(s).`);
+  };
+
+  const handleTabChange = (tab: TabType) => setActiveTab(tab);
+
+  // async function handleSign() {
+  //   if (!paymentAddress) return;
+  //   const result = await signMessage({
+  //     address: paymentAddress,
+  //     message: "Please sign this message for verification",
+  //     protocol: MessageSigningProtocols.ECDSA,
+  //   });
+  //   console.log(result);
+  // }
 
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
-      <Header />
+      <Header
+        show={showTransactionModal}
+        onClose={() => setShowTransactionModal(false)}
+      />
 
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
         <div className="test-net-text border md:border-[1.2px] border-dashed bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)] rounded-xl md:rounded-2xl py-2.5 md:px-4 md:py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
           <Wrench size={19} />
-          <span>You are in testnet mode</span>
+          <span>
+            You are in {`${networkResponse?.bitcoin?.name ?? "Testnet"}`} mode
+          </span>
         </div>
 
         <div className="w-full max-w-lg mx-auto">
@@ -350,124 +393,75 @@ console.log("inputIndexes:", inputIndexes);
 
             <div className="relative overflow-hidden min-h-[400px]">
               <div
-                className="flex w-full transition-transform duration-500 ease-in-out"
+                className="flex w-[200%] transition-transform duration-500 ease-in-out"
                 style={{
                   transform: `translateX(${
-                    activeTab === "mint" ? "0%" : "-100%"
+                    activeTab === "mint" ? "0%" : "-50%"
                   })`,
                 }}
               >
-                 <MintPanel
-          btcDeposit={btcDeposit}
-          error={error}
-          getBalanceResult={getBalanceResult}
-          mintAmount={1000}
-          collateralRatio={collateralRatio}
-          liquidationPrice={liquidationPrice}
-          requiredCollateralBTC={requiredCollateralBTC}
-          requiredCollateralSATs={requiredCollateralSATs}
-          handleBtcDeposit={setBtcDeposit}
-          handleMint={handleMint}
-        />
+                <div className="w-1/2 shrink-0 px-4">
+                  <MintPanel
+                    btcDeposit={btcDeposit}
+                    error={error}
+                    getBalanceResult={getBalanceResult}
+                    mintAmount={Number(mintAmount)}
+                    collateralRatio={collateralRatio}
+                    liquidationPrice={liquidationPrice}
+                    requiredCollateralBTC={requiredCollateralBTC}
+                    requiredCollateralSATs={requiredCollateralSATs}
+                    handleBtcDeposit={setBtcDeposit}
+                  />
+                </div>
 
-                <div className="w-full shrink-0">
-                  {/* Withdraw Panel */}
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm text-muted">
-                        Select vaults to close
-                      </label>
-                      {/* <input
-                        type="checkbox"
-                        className="vault-checkbox w-5 h-5 pr-2"
-                        checked={selectedVaults.length === getRunesBalanceResult.length}
-                        onChange={() => {
-                          if (selectedVaults.length === MOCK_VAULTS.length) {
-                            setSelectedVaults([]);
-                          } else {
-                            setSelectedVaults(MOCK_VAULTS.map((v) => v.id));
-                          }
-                        }}
-                      /> */}
-                    </div>
-
-                    <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
-                      {getRunesBalanceResult &&
-                        getRunesBalanceResult.map((vault) => (
-                          <div
-                            key={vault.id}
-                            className={`vault-item flex justify-between p-4 rounded-lg ${
-                              selectedVaults.includes(vault.id ?? "")
-                                ? "vault-item-selected"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <input
-                                type="checkbox"
-                                className="vault-checkbox w-5 h-5"
-                                checked={selectedVaults.includes(
-                                  vault.id ?? ""
-                                )}
-                                onChange={() =>
-                                  toggleVaultSelection(vault.id ?? "")
-                                }
-                              />
-                              <div>
-                                <div className="font-semibold">
-                                  Vault #{vault.id}
-                                </div>
-                                <div className="text-sm text-muted">
-                                  Collateral: {`${satsToBtc(5000)}`} BTC
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold">
-                                {vault.amount} {vault.runeName}
-                              </div>
-                              <div className="text-sm text-muted">Debt</div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-
-                    <div
-                      className="mt-6 pt-4 border-t"
-                      style={{ borderColor: "var(--card-border-color)" }}
-                    >
-                      <div className="text-lg font-semibold mb-4">Summary</div>
-                      <div className="text-sm text-muted space-y-2">
-                        <div className="flex justify-between">
-                          <span>Total to Repay</span>
-                          {/* <span>{totalSelectedDebt.toFixed(2)} USDB</span> */}
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Collateral to Withdraw</span>
-                          {/* <span>{totalSelectedCollateral.toFixed(6)} BTC</span> */}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleWithdraw}
-                      className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-lg text-lg"
-                    >
-                      Withdraw Selected
-                    </button>
-                  </div>
+                <div className="w-1/2 shrink-0 px-4">
+                  <WithdrawPanel
+                    vaults={processedVaults}
+                    selectedVaults={selectedVaults}
+                    toggleVault={toggleVault}
+                    toggleSelectAll={toggleSelectAll}
+                    allSelected={allSelected}
+                    totalDebt={totalDebt}
+                    totalCollateral={totalCollateral}
+                    handleWithdraw={handleWithdraw}
+                    transactionStatus={transactionStatus}
+                  />
                 </div>
               </div>
             </div>
+
+            <button
+              onClick={activeTab === "mint" ? handleMint : handleWithdraw}
+              disabled={loading}
+              className={`w-full mt-6 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-amber-500 hover:bg-amber-600"
+              } text-black font-bold py-4 rounded-lg text-lg`}
+            >
+              {loading
+                ? "Processing..."
+                : activeTab === "mint"
+                ? "Mint USDB"
+                : "Withdraw Selected"}
+            </button>
           </div>
         </div>
-        <SuccessModal
+
+        {/* <SuccessModal
           show={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
-        />
+        /> */}
+
+        {modalOutputs && (
+          <MintModal
+            show={showTransactionModal}
+            onClose={() => setShowTransactionModal(false)}
+            handlePsbt={handlePsbt}
+            outputs={modalOutputs}
+          />
+        )}
       </main>
     </div>
   );
 }
-
-export default USDBCoin;

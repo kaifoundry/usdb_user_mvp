@@ -5,6 +5,7 @@
   --text-muted-color: #9ca3af;
   --card-bg-color: rgba(23, 23, 23, 0.7);
   --card-border-color: rgba(255, 255, 255, 0.1);
+  --modal-border-color: rgba(255, 255, 255, 0.7);
   --header-bg-color: rgba(10, 10, 10, 0.5);
   --header-border-color: rgba(38, 38, 38, 0.5);
   --icon-circle-bg: #1f2937;
@@ -27,6 +28,7 @@
   --text-status-color: #DBDBDB;
    --status-box-bg:rgba(247, 233, 38, 0.08);
   --status-box-border:rgba(247, 233, 38, 0.12);
+  --modal-background: rgba(0, 0, 0, 0.8);
 
 }
 
@@ -57,6 +59,7 @@
   --text-status-color: #333333;
   --status-box-bg:rgba(247, 233, 38, 0.24);
   --status-box-border:rgba(247, 233, 38, 0.4);
+  --modal-background: rgba(255, 255, 255, 0.7);
 }
 
 body {
@@ -64,6 +67,11 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.modal-background {
+  background-color: var(--modal-background);
+   backdrop-filter: blur(4px);
 }
 .status-box {
   background-color: var(--status-box-bg);
@@ -89,6 +97,11 @@ body {
   /* border-bottom: 1px solid var(--header-border-color); */
 }
 
+.modal-card {
+  background-color: var(--card-bg-color);
+  border: 1px solid var(--modal-border-color);
+  backdrop-filter: blur(10px);
+}
 .app-card {
   background-color: var(--card-bg-color);
   border: 1px solid var(--card-border-color);

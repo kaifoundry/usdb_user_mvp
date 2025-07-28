@@ -5,39 +5,63 @@ import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import type { Theme } from "../types/theme";
 import logo from "../assets/logowhite.png";
-
-export default function Header() {
-  const { wallet, connectWallet, loading, disconnectWallet } =
-    useWallet();
+import { getBalance } from "../api/getBalance";
+import useBTCConverter from "../Hooks/useBTCConverter";
+import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
+type MintModalProps = {
+  show: boolean;
+  onClose: () => void;
+};
+export default function Header({ show, onClose}: MintModalProps) {
+  const { wallet, connectWallet, loading, disconnectWallet } = useWallet();
   const location = useLocation();
   const isAppPage = location.pathname === "/usdb";
   const [copied, setCopied] = useState(false);
- const [theme, setTheme] = useState<Theme>(
-      localStorage.getItem("theme") === "light" ||
-        localStorage.getItem("theme") === "dark"
-        ? (localStorage.getItem("theme") as Theme)
-        : window.matchMedia("(prefers-color-scheme: light)").matches
-        ? "light"
-        : "dark"
-    );
-  
-    // Theme handling
-    useEffect(() => {
-      document.body.classList.toggle("light-mode", theme === "light");
-      localStorage.setItem("theme", theme);
-    }, [theme]);
-  
-    const toggleTheme = () => {
-      const newTheme = theme === "light" ? "dark" : "light";
-      setTheme(newTheme);
-      localStorage.setItem("theme", newTheme);
-    };
+  const { satsToBtc } = useBTCConverter();
+  const [theme, setTheme] = useState<Theme>(
+    localStorage.getItem("theme") === "light" ||
+      localStorage.getItem("theme") === "dark"
+      ? (localStorage.getItem("theme") as Theme)
+      : window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark"
+  );
+  const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
+  const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<
+    RuneBalance[] | null
+  >(null);
+
+  // Theme handling
+  useEffect(() => {
+    document.body.classList.toggle("light-mode", theme === "light");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+  };
+
+  useEffect(() => {
+    if (wallet && wallet?.paymentAddress?.address) {
+      (async () => {
+        const response = await getBalance();
+        const response2 = await getRunesBalance();
+        console.log("response2:", response2);
+        setGetRunesBalanceResult(response2);
+        setGetBalanceResult(response.paymentAddress?.total ?? null);
+      })();
+    }
+  }, [wallet?.paymentAddress?.address]);
 
   return (
     <>
       <Toaster position="top-center" /> {/* <-- add this */}
-      <header className="header fixed w-full backdrop-blur-lg z-50">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+    <header
+  className={`header fixed w-full backdrop-blur-lg ${show ? '' : 'z-30'} `}
+>
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center ">
           <div className="flex items-center">
             <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
               <div className="w-7 h-6 md:w-7 md:h-7 rounded-full overflow-hidden">
@@ -114,20 +138,25 @@ export default function Header() {
           ) : (
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex space-x-4 text-sm">
-                {/* <span className="px-4 py-3 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
-                  {MOCK_WALLET.usdbBalance.toLocaleString()} USDB
+                {getRunesBalanceResult?.map((item ,index) => (
+                  <span className="px-3 py-3" key={index}>
+                    {`${item?.amount} ${item?.runeName}`}
+                  </span>
+                ))}
+                <span className="pr-3 py-3">
+                  {getBalanceResult !== null
+                    ? `${satsToBtc(Number(getBalanceResult))} BTC`
+                    : ""}
                 </span>
-                <span className="px-4 py-3 rounded-[34px] border  border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
-                  {MOCK_WALLET.btcBalance} BTC
-                </span> */}
-                {(wallet?.paymentAddress?.address?.toString?.() ) ? (
+                {wallet?.paymentAddress?.address?.toString?.() ? (
                   <span className="px-4 py-2   rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]  flex items-center">
-                    <span className="max-w-[180px] xs:max-w-[120px] truncate ">
-                      {(wallet?.paymentAddress?.address?.toString?.())}
+                    <span className="max-w-[120px] xs:max-w-[80px] truncate ">
+                      {wallet?.paymentAddress?.address?.toString?.()}
                     </span>
                     <button
                       onClick={() => {
-                        const address = wallet?.paymentAddress?.address?.toString?.();
+                        const address =
+                          wallet?.paymentAddress?.address?.toString?.();
                         if (address) {
                           navigator.clipboard.writeText(address);
                           setCopied(true);
@@ -139,7 +168,10 @@ export default function Header() {
                       title={copied ? "Copied!" : "Copy to clipboard"}
                       type="button"
                     >
-                      <Copy size={18} className={copied ? "text-amber-400" : ""} />
+                      <Copy
+                        size={18}
+                        className={copied ? "text-amber-400" : ""}
+                      />
                     </button>
                   </span>
                 ) : null}

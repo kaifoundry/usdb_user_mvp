@@ -1,102 +1,134 @@
-// import { MOCK_VAULTS } from "../constants/appContsants";
-// import type { Vault } from "../types/vault";
+import { type RuneBalance } from "../api/getRunesBalance";
+import type { CombinedTransactionStatus } from "../types/transactionApiResponse";
 
+interface Props {
+  vaults: RuneBalance[];
+  selectedVaults: string[];
+  toggleVault: (id: string) => void;
+  toggleSelectAll: () => void;
+  allSelected: boolean;
+  totalDebt: number;
+  totalCollateral: number;
+  handleWithdraw: () => void;
+  transactionStatus: CombinedTransactionStatus | null;
+}
 
-// interface Props {
-//   vaults: Vault[];
-//   selectedVaults: number[];
-//   toggleVault: (id: number) => void;
-//   totalDebt: number;
-//   totalCollateral: number;
-//   handleWithdraw: () => void;
-// }
+export default function WithdrawPanel({
+  vaults,
+  selectedVaults,
+  toggleVault,
+  toggleSelectAll,
+  allSelected,
+  totalDebt,
+  totalCollateral,
+  transactionStatus
+}: Props) {
+  const isConfirmed = transactionStatus?.primary?.confirmed === true;
 
-// export default function WithdrawPanel({
-//   vaults,
-//   selectedVaults,
-//   toggleVault,
-//   totalDebt,
-//   totalCollateral,
-//   handleWithdraw,
-// }: Props) {
-//   return (
-//      <div className="w-full shrink-0">
-//                       {/* Withdraw Panel */}
-//                       <div className="mt-6">
-//                         <div className="flex items-center justify-between">
-//                           <label className="text-sm text-muted">
-//                             Select vaults to close
-//                           </label>
-//                           <input
-//                             type="checkbox"
-//                             className="vault-checkbox w-5 h-5 pr-2"
-//                             checked={selectedVaults.length === MOCK_VAULTS.length}
-//                             onChange={() => {
-//                               if (selectedVaults.length === MOCK_VAULTS.length) {
-//                                 setSelectedVaults([]);
-//                               } else {
-//                                 setSelectedVaults(MOCK_VAULTS.map((v) => v.id));
-//                               }
-//                             }}
-//                           />
-//                         </div>
-    
-//                         <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
-//                           {MOCK_VAULTS.map((vault) => (
-//                             <div
-//                               key={vault.id}
-//                               className={`vault-item flex items-center justify-between p-4 rounded-lg ${
-//                                 selectedVaults.includes(vault.id)
-//                                   ? "vault-item-selected"
-//                                   : ""
-//                               }`}
-//                             >
-//                               <div className="flex items-center gap-4">
-//                                 <input
-//                                   type="checkbox"
-//                                   className="vault-checkbox w-5 h-5"
-//                                   checked={selectedVaults.includes(vault.id)}
-//                                   onChange={() => toggleVaultSelection(vault.id)}
-//                                 />
-//                                 <div>
-//                                   <div className="font-semibold">Vault #{vault.id}</div>
-//                                   <div className="text-sm text-muted">
-//                                     Collateral: {vault.collateral.toFixed(6)} BTC
-//                                   </div>
-//                                 </div>
-//                               </div>
-//                               <div className="text-right">
-//                                 <div className="font-semibold">
-//                                   {vault.debt.toFixed(2)} USDB
-//                                 </div>
-//                                 <div className="text-sm text-muted">Debt</div>
-//                               </div>
-//                             </div>
-//                           ))}
-//                         </div>
-//                         <div
-//                           className="mt-6 pt-4 border-t"
-//                           style={{ borderColor: "var(--card-border-color)" }}
-//                         >
-//                           <div className="text-lg font-semibold mb-4">Summary</div>
-//                           <div className="text-sm text-muted space-y-2">
-//                             <div className="flex justify-between">
-//                               <span>Total to Repay</span>
-//                               <span>{totalSelectedDebt.toFixed(2)} USDB</span>
-//                             </div>
-//                             <div className="flex justify-between">
-//                               <span>Collateral to Withdraw</span>
-//                               <span>{totalSelectedCollateral.toFixed(6)} BTC</span>
-//                             </div>
-//                           </div>
-//                         </div>
-//                         <button
-//                           onClick={handleWithdraw}
-//                           className="w-full mt-6 bg-amber-500 hover:bg-amber-600 text-black font-bold py-4 rounded-lg text-lg"
-//                         >
-//                           Withdraw Selected
-//                         </button>
-//                       </div>
-//                     </div>
-//   );
-// }
+  return (
+    <>
+      <div className="flex items-center justify-between mt-6">
+        <label className="text-sm text-muted">Select vaults to close</label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Select All</span>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 vault-checkbox"
+            disabled={!isConfirmed}
+          />
+        </div>
+      </div>
+
+      <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
+        {vaults
+          .filter((vault) => vault.id !== undefined)
+          .map((vault, index) => {
+            const isSelected = selectedVaults.includes(vault.id!);
+
+            return (
+              <div
+                key={index}
+                className={`vault-item p-4 rounded-lg border ${
+                  !isConfirmed
+                    ? "border-[#5E582F] bg-[#1A1A1A]"
+                    : isSelected
+                    ? "vault-item-selected"
+                    : "border-[#333]"
+                }`}
+              >
+                {!isConfirmed && (
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 bg-[#5E582F] text-white rounded-md">
+                        In Progress
+                      </span>
+                      <span className="text-xs text-muted">
+                        about 20 hours ago
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-green-500 gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                      <span>6+</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isConfirmed && (
+                      <input
+                        type="checkbox"
+                        className="vault-checkbox w-5 h-5"
+                        checked={isSelected}
+                        onChange={() => toggleVault(vault.id!)}
+                      />
+                    )}
+                    <div>
+                      <div className="font-semibold">Vault #{vault.id}</div>
+                      <div className="text-sm text-muted">
+                        Collateral: 5000 sats
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">
+                      {vault.amount} {vault.runeName}
+                    </div>
+                    <div className="text-sm text-muted">Debt</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="mt-6 pt-4 border-t border-[#333]">
+        <div className="text-lg font-semibold mb-4">Summary</div>
+        <div className="text-sm text-muted space-y-2">
+          <div className="flex justify-between">
+            <span>Total to Repay</span>
+            <span>${totalDebt.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Collateral to Withdraw</span>
+            <span>{totalCollateral.toFixed(6)} BTC</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
