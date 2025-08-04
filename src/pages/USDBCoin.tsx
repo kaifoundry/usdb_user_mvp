@@ -14,6 +14,7 @@ import {
   MIN_COLLATERAL_RATIO,
   MOCK_BTC_PRICE,
   MOCK_SATOSHI_PER_BTC,
+  MOCK_USDB_PRICE,
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
 import useBTCConverter from "../Hooks/useBTCConverter";
@@ -27,6 +28,7 @@ import type {
   OutputData,
 } from "../types/mintApiResponse";
 import type { CombinedTransactionStatus, TransactionApiResponse } from "../types/transactionApiResponse";
+import WithdrawModal from "../Modal/withdrawModal";
 
 export default function USDBCoin() {
   const { satsToBtc } = useBTCConverter();
@@ -53,6 +55,8 @@ export default function USDBCoin() {
   const [mintData, setMintData] = useState<MintData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showWithDrawModal, setShowWithDrawModal] = useState(false);
+
   const [transactionStatus, setTransactionStatus] =
     useState<CombinedTransactionStatus | null>(null);
 
@@ -100,49 +104,52 @@ export default function USDBCoin() {
     }
   }, [wallet]);
 
-  useEffect(() => {
-    const btc = parseFloat(btcDeposit);
-    if (!btc || btc <= 0) {
-      setMintAmount("1000");
-      setCollateralRatio("--");
-      setLiquidationPrice("$0.00");
-      setBtcDepositSats("--");
-      setRequiredCollateralBTC("--");
-      setRequiredCollateralSATs("--");
-      return;
-    }
+ useEffect(() => {
+  const btc = parseFloat(btcDeposit);
+  if (!btc || btc <= 0) {
+    setMintAmount("1000");
+    setCollateralRatio("--");
+    setLiquidationPrice("$0.00");
+    setBtcDepositSats("--");
+    setRequiredCollateralBTC("--");
+    setRequiredCollateralSATs("--");
+    return;
+  }
 
-    const mintable = 1000; // fixed
-    const collateralValueUSD = btc * MOCK_BTC_PRICE;
-    const actualRatio = (collateralValueUSD / mintable) * 100;
+  const mintable = MOCK_USDB_PRICE;
+  const collateralValueUSD = btc * MOCK_BTC_PRICE;
+  const actualRatio = (collateralValueUSD / mintable) * 100;
 
-    setMintAmount(mintable.toFixed(0));
-    setCollateralRatio(`${actualRatio.toFixed(0)}`);
+  setMintAmount(mintable.toFixed(0));
+  setCollateralRatio(`${actualRatio}`);
 
-    const liquidation = mintable / btc;
-    setLiquidationPrice(`$${liquidation.toFixed(2)}`);
+  const liquidation = mintable / btc;
+  setLiquidationPrice(`$${liquidation.toFixed(2)}`);
 
-    const sats = btc * 100_000_000;
-    setBtcDepositSats(sats.toFixed(0));
+  const sats = btc * 100_000_000;
+  setBtcDepositSats(sats.toFixed(0));
 
-    const requiredBTC = (mintable * MIN_COLLATERAL_RATIO) / MOCK_BTC_PRICE;
-    const requiredSATs = requiredBTC * 100_000_000;
+  const requiredBTC = (mintable * MIN_COLLATERAL_RATIO) / MOCK_BTC_PRICE;
+  const requiredSATs = requiredBTC * 100_000_000;
 
-    setRequiredCollateralBTC(requiredBTC.toFixed(8));
-    setRequiredCollateralSATs(requiredSATs.toFixed(0));
-  }, [btcDeposit]);
+  setRequiredCollateralBTC(requiredBTC.toFixed(8));
+  setRequiredCollateralSATs(requiredSATs.toFixed(0));
+}, [btcDeposit]);
+console.log('wallet:', wallet);
 
   const handleMint = async () => {
-    const apiUrl = `${import.meta.env.VITE_API_URL}/mint-btc-lock`;
+    const apiUrl = `${import.meta.env.VITE_API_URL}/mint/mint-btc-lock`;
     const destination = wallet?.ordinalsAddress?.address;
     const btcAddress = wallet?.paymentAddress?.address;
+    const ordinalPublicKey= wallet?.ordinalsAddress?.publicKey;
+    const paymentAddressPublicKey= wallet?.paymentAddress?.publicKey;
 
     if (!apiUrl || !destination || !btcAddress) {
       console.error("❌ Missing API URL or wallet addresses");
       return;
     }
 
-    const payload = { destination, btcAddress };
+    const payload = { destination, btcAddress ,ordinalPublicKey,paymentAddressPublicKey};
     setLoading(true);
     try {
       const response = await fetch(apiUrl, {
@@ -154,8 +161,9 @@ export default function USDBCoin() {
         console.error("❌ Mint API request failed:", response.statusText);
         return;
       }
+
       const data: MintApiResponse = await response.json();
-      console.log("data:", data);
+      console.log("data mint:", data);
       setMintData({ data, paymentAddress: btcAddress });
       const outputsArray =
         data?.finalPsbt?.userVisibleOutputs?.map((outputObj) => {
@@ -332,11 +340,7 @@ useEffect(() => {
  
 
   const handleWithdraw = () => {
-    if (selectedVaults.length === 0) {
-      alert("Select at least one vault to withdraw.");
-      return;
-    }
-    alert(`Withdrawal submitted for ${selectedVaults.length} vault(s).`);
+   setShowWithDrawModal(true);
   };
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
@@ -425,6 +429,9 @@ useEffect(() => {
                     totalCollateral={totalCollateral}
                     handleWithdraw={handleWithdraw}
                     transactionStatus={transactionStatus}
+                    txIds={mintData?.data?.finalPsbt?.selectedInputs?.map(
+                      (input) => input.txid
+                    )}
                   />
                 </div>
               </div>
@@ -447,20 +454,18 @@ useEffect(() => {
             </button>
           </div>
         </div>
-
-        {/* <SuccessModal
-          show={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-        /> */}
-
-        {modalOutputs && (
+        {/* {modalOutputs && ( */}
           <MintModal
             show={showTransactionModal}
             onClose={() => setShowTransactionModal(false)}
             handlePsbt={handlePsbt}
-            outputs={modalOutputs}
+            // outputs={modalOutputs}
           />
-        )}
+        {/* )}/ */}
+        <WithdrawModal
+          show={showWithDrawModal}
+          onClose={() => setShowWithDrawModal(false)}
+        />
       </main>
     </div>
   );

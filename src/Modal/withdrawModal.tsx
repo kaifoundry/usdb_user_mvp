@@ -1,22 +1,26 @@
-import React from "react";
+import { useState } from "react";
+import type { Theme } from "../types/theme";
 
-type OutputData = Array<{
-  address: string;
-  amount: string;
-}>;
 
-type MintModalProps = {
+// components/WithdrawModal.tsx
+type WithdrawModalProps = {
   show: boolean;
   onClose: () => void;
-  outputs?: OutputData;
-  handlePsbt: () => void;
 };
 
-const MintModal = ({ show, onClose, outputs, handlePsbt }: MintModalProps) => {
+const WithdrawModal = ({ show, onClose, }: WithdrawModalProps) => {
+ const [theme, setTheme] = useState<Theme>(
+      localStorage.getItem("theme") === "light" ||
+        localStorage.getItem("theme") === "dark"
+        ? (localStorage.getItem("theme") as Theme)
+        : window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark"
+    );
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 modal-background">
+   <div className="fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 modal-background">
       <div className="relative w-full max-w-xl mx-4 rounded-xl shadow-lg p-8 flex flex-col gap-6 modal-card">
         <button
           type="button"
@@ -46,39 +50,24 @@ const MintModal = ({ show, onClose, outputs, handlePsbt }: MintModalProps) => {
 
        <div className="text-muted text-base space-y-4">
   <div className="grid grid-cols-[120px_1fr] gap-2">
-    <span className="font-bold">Fee:</span>
-    <span>5,000 sats will be paid as protocol fee</span>
-  </div>
-  <div className="grid grid-cols-[120px_1fr] gap-2">
-    <span className="font-bold">Vault Lock:</span>
-    <div>
-      <p>10,000 sats will be locked into a secure vault</p>
-      <a
-        href="https://www.notion.so/testnet4-usdb-23eb2f91978f803f9279ffa00431fa64?pvs=21"
-        target="_blank"
-        rel="noopener noreferrer"
-        className=" underline hover:text-blue-500"
-      >
-        Learn more
-      </a>
-    </div>
+    <span className="font-bold">Burning:</span>
+    <span>1,000 USDB tokens will be burnt from your wallet</span>
   </div>
   <div className="grid grid-cols-[120px_1fr] gap-2">
     <span className="font-bold">You Receive:</span>
-    <span>1,000 USDB tokens</span>
+    <div>
+      <p>10,000 vault tokens back</p>
+    </div>
   </div>
 </div>
 
 
         <button
           className="w-full bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg shadow"
-          onClick={handlePsbt}
-        >
-          Sign PSBT
-        </button>
+        >Withdraw</button>
       </div>
     </div>
   );
 };
 
-export default MintModal;
+export default WithdrawModal;
