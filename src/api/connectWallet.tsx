@@ -4,6 +4,7 @@ import { request, AddressPurpose, RpcErrorCode } from "sats-connect";
 export interface WalletAddressItem {
   purpose: any; 
   address: string;
+  publicKey: string; 
 }
 
 export interface ConnectWalletResult {
