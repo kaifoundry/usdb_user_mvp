@@ -9,6 +9,7 @@ export interface MintData {
     selectedInputs: any[];
   userVisibleOutputs?: Array<Record<string, number>>;
   };
+  vault_address: string;
 };
 
 export type OutputData = Array<{

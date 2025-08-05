@@ -1,15 +1,12 @@
-import type { CombinedTransactionStatus } from "../../types/transactionApiResponse";
-import type { RuneBalance } from "../api/getRunesBalanceInterface";
+
+import type { VaultTransaction } from "../pages/getTransactionInterface";
 
 export interface WithDrawPanelProps {
-  vaults: RuneBalance[];
+  vaults: VaultTransaction[];
   selectedVaults: string[];
   toggleVault: (id: string) => void;
   toggleSelectAll: () => void;
   allSelected: boolean;
   totalDebt: number;
   totalCollateral: number;
-  handleWithdraw: () => void;
-  transactionStatus: CombinedTransactionStatus | null;
-  txIds: string[] | undefined;
 }

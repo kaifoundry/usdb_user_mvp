@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Theme } from "../types/theme";
-const WithdrawModal = ({ show, onClose, }: WithdrawModalProps) => {
+const WithdrawModal = ({ show, onClose, handleWithdrawPsbt}: WithdrawModalProps) => {
  const [theme, setTheme] = useState<Theme>(
       localStorage.getItem("theme") === "light" ||
         localStorage.getItem("theme") === "dark"
@@ -48,7 +48,7 @@ const WithdrawModal = ({ show, onClose, }: WithdrawModalProps) => {
   <div className="grid grid-cols-[120px_1fr] gap-2">
     <span className="font-bold">You Receive:</span>
     <div>
-      <p>10,000 vault tokens back</p>
+      <p>10,000 vault USDB back</p>
     </div>
   </div>
 </div>
@@ -56,6 +56,7 @@ const WithdrawModal = ({ show, onClose, }: WithdrawModalProps) => {
 
         <button
           className="w-full bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg shadow"
+          onClick={handleWithdrawPsbt}
         >Withdraw</button>
       </div>
     </div>

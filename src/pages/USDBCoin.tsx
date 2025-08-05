@@ -20,7 +20,6 @@ import useBTCConverter from "../Hooks/useBTCConverter";
 import { getNetwork, type GetNetworkResponse } from "../api/getNetwork";
 import WithdrawPanel from "../components/WithdrawPanel";
 import MintModal from "../Modal/mintModal";
-import toast from "react-hot-toast";
 import type {
   MintApiResponse,
   MintData,
@@ -28,7 +27,9 @@ import type {
 } from "../types/mintApiResponse";
 import type { CombinedTransactionStatus, TransactionApiResponse } from "../types/transactionApiResponse";
 import WithdrawModal from "../Modal/withdrawModal";
-import type { RuneBalance } from "../interfaces/api/getRunesBalanceInterface";
+import type { ConfirmationRequest, ConfirmationResponse } from "../interfaces/pages/usdbCoinInterface";
+import type { VaultTransaction } from "../interfaces/pages/getTransactionInterface";
+import type { LiquidationRequest, LiquidationResponse, LiquidationState } from "../interfaces/pages/liquidationInterface";
 
 export default function USDBCoin() {
   const { satsToBtc } = useBTCConverter();
@@ -47,16 +48,16 @@ export default function USDBCoin() {
     useState<GetNetworkResponse | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const { wallet } = useWallet();
-  const [vaults, setVaults] = useState<RuneBalance[]>([]);
+  const [vaults, setVaults] = useState<VaultTransaction[]>([]);
   const [allSelected, setAllSelected] = useState(false);
   const [modalOutputs, setModalOutputs] = useState<OutputData | null>(null);
   const [mintData, setMintData] = useState<MintData | null>(null);
+  const [liquidationData, setLiquidationData] = useState<LiquidationState | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithDrawModal, setShowWithDrawModal] = useState(false);
 
-  const [transactionStatus, setTransactionStatus] =
-    useState<CombinedTransactionStatus | null>(null);
 
   useEffect(() => {
     if (wallet) {
@@ -91,17 +92,6 @@ export default function USDBCoin() {
     const availableBalance = Number(getBalanceResult) / 100_000_000;
     setError(inputAmount > availableBalance ? "Insufficient Balance" : "");
   }, [btcDeposit, getBalanceResult]);
-
-  useEffect(() => {
-    if (wallet) {
-      (async () => {
-        const result = await getRunesBalance();
-        if (result) setVaults(result);
-      })();
-    }
-  }, [wallet]);
-
-
 
 useEffect(() => {
   const btc = parseFloat(btcDeposit);
@@ -145,6 +135,7 @@ setLiquidationPrice("$0.00");
     const ordinalPublicKey= wallet?.ordinalsAddress?.publicKey;
     const paymentAddressPublicKey= wallet?.paymentAddress?.publicKey;
 
+    console.log()
     if (!apiUrl || !destination || !btcAddress) {
       console.error("❌ Missing API URL or wallet addresses");
       return;
@@ -185,164 +176,289 @@ setLiquidationPrice("$0.00");
     }
   };
 
-  const handlePsbt = async () => {
-    if (!mintData) {
-      console.warn("⚠️ No mint data available.");
-      return;
-    }
-    const { data, paymentAddress } = mintData;
-    const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
-    const selectedInputs = data.finalPsbt?.selectedInputs;
+const handlePsbt = async () => {
+  if (!mintData) {
+    console.warn("⚠️ No mint data available.");
+    return;
+  }
 
-    if (!modifiedPsbt || !selectedInputs?.length) {
-      console.error("❌ Invalid PSBT or inputs.");
-      return;
-    }
-    const inputIndexes = selectedInputs.map((_, idx) => idx);
-    const signInputs: Record<string, number[]> = {
-      [paymentAddress]: inputIndexes,
-    };
-    setLoading(true);
-    try {
-      const signed = await signPsbt({
-        psbtBase64: modifiedPsbt,
-        signInputs,
-        broadcast: true,
-      });
-      if (signed?.psbt) {
-        toast.success("✅ PSBT signed successfully!");
-        console.log("✅ Signed PSBT:", signed.psbt);
-      }
+  const { data, paymentAddress } = mintData;
+  const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
+  const selectedInputs = data.finalPsbt?.selectedInputs;
+  const vaultAddress = data.vault_address;
 
-      if (signed?.txid) {
-        console.log("📡 Broadcasted TXID:", signed.txid);
-      }
-    } catch (err) {
-      console.error("❌ Signing failed:", err);
-    } finally {
-      setShowTransactionModal(false);
-      setLoading(false);
-    }
+  if (!modifiedPsbt || !selectedInputs?.length) {
+    console.error("❌ Invalid PSBT or inputs.");
+    return;
+  }
+
+  const inputIndexes = selectedInputs.map((_, idx) => idx);
+  const signInputs: Record<string, number[]> = {
+    [paymentAddress]: inputIndexes,
   };
 
-  const processedVaults = vaults.flatMap((vault) => {
-    if (vault.amount > 1000) {
-      const splits: RuneBalance[] = [];
-      let remaining = vault.amount;
-      let index = 1;
-      while (remaining > 0) {
-        const chunk = remaining >= 1000 ? 1000 : remaining;
-        splits.push({
-          ...vault,
-          id: `${vault.id}-${index}`,
-          amount: chunk,
-        });
-        remaining -= chunk;
-        index++;
-      }
-      return splits;
-    } else {
-      return [vault];
+  setLoading(true);
+
+  try {
+    const signed = await signPsbt({
+      psbtBase64: modifiedPsbt,
+      signInputs,
+      broadcast: true,
+    });
+
+    if (signed?.txid) {
+      const confirmation = await checkTransactionConfirmation(
+        signed.txid,
+        paymentAddress,
+        vaultAddress
+      );
+
+      // optionally handle confirmation result
+      console.log("Confirmation status:", confirmation);
     }
-  });
+  } catch (err) {
+    console.error("❌ Signing or confirmation failed:", err);
+  } finally {
+    setShowTransactionModal(false);
+    setLoading(false);
+  }
+};
 
-  const toggleVault = (id: string) => {
-    setSelectedVaults((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedVaults([]);
-    } else {
-      const allIds = processedVaults
-        .map((v) => v.id)
-        .filter((id): id is string => !!id);
-      setSelectedVaults(allIds);
-    }
-    setAllSelected(!allSelected);
-  };
-
-  useEffect(() => {
-    setAllSelected(
-      processedVaults.length > 0 &&
-        selectedVaults.length === processedVaults.length
-    );
-  }, [selectedVaults, processedVaults]);
-
-  const totalDebt = processedVaults
-    .filter((v) => v.id && selectedVaults.includes(v.id))
-    .reduce((sum, v) => sum + Number(v.amount ?? 0), 0);
-
-  const totalCollateral =
-    processedVaults
-      .filter((v) => v.id && selectedVaults.includes(v.id))
-      .reduce((sum, _) => sum + 5000, 0) / 100_000_000;
 
 useEffect(() => {
-  const fetchTxStatus = async (): Promise<void> => {
-    const selectedInputs = mintData?.data?.finalPsbt?.selectedInputs;
-    const txids = selectedInputs?.map((input) => input?.txid).filter(Boolean);
+  if (paymentAddress && activeTab === "withdraw") {
+  getVaultTransactions(paymentAddress)
+  }
+},[paymentAddress,activeTab]);
 
-    if (!txids || txids.length === 0) {
-      console.error("❌ TXIDs are missing");
-      return;
+const getVaultTransactions = async (
+  paymentAddress: string
+): Promise<VaultTransaction[]> => {
+  const url = `${import.meta.env.VITE_API_URL}/transaction/vault?payment_address=${(paymentAddress)}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch vault transactions: ${response.statusText}`);
     }
 
-    const networkName = networkResponse?.bitcoin?.name?.toLowerCase();
-    const network =
-      networkName === "mainnet"
-        ? ""
-        : networkName === "testnet3"
-        ? "testnet"
-        : networkName;
+    const data: VaultTransaction[] = await response.json();
+    setVaults(data);
+    console.log("✅ Vault transactions:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching vault transactions:", error);
+    throw error;
+  }
+};
 
-    const primaryApiUrl = `${import.meta.env.VITE_NETWORK_API_URL}/${network}/api/tx/${txids[0]}/status`;
+const checkTransactionConfirmation = async (
+  txid: string,
+  paymentAddress: string,
+  vaultAddress: string
+): Promise<ConfirmationResponse> => {
+  const requestBody: ConfirmationRequest = {
+    txid,
+    paymentAddress,
+    vaultAddress,
+  };
 
-    const mempoolBase = `${import.meta.env.VITE_NETWORK_API_URL}/${network}/api/v1/transaction-times`;
-    const mempoolQuery = txids.map((id) => `txId[]=${id}`).join("&");
-    console.log("Fetching mempool data with query:", mempoolQuery);
-    const mempoolUrl = `${mempoolBase}?${mempoolQuery}`;
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/transaction/check/confirmation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    try {
-      const [primaryResponse, mempoolResponse] = await Promise.all([
-        fetch(primaryApiUrl),
-        fetch(mempoolUrl),
-      ]);
+    if (!response.ok) {
+      throw new Error(`Failed to check transaction confirmation: ${response.statusText}`);
+    }
 
-      if (!primaryResponse.ok || !mempoolResponse.ok) {
-        throw new Error(
-          `HTTP error(s): ${primaryResponse.status}, ${mempoolResponse.status}`
-        );
-      }
+    const data: ConfirmationResponse = await response.json();
+    console.log("✅ Transaction confirmation response:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error checking transaction confirmation:", error);
+    throw error;
+  }
+};
 
-      const primaryData: TransactionApiResponse = await primaryResponse.json();
-      const mempoolTimestamps: number[] = await mempoolResponse.json();
+ const processedVaults = vaults.flatMap((vault) => {
+  if (vault.usdb_amount > 10000) {
+    const splits: VaultTransaction[] = [];
+    let remaining = vault.usdb_amount;
+    let index = 1;
+    while (remaining > 0) {
+      const chunk = remaining >= 10000 ? 10000 : remaining;
+      splits.push({
+        ...vault,
+        id: Number(`${vault.id}${index}`), // make new unique ID
+        usdb_amount: chunk,
+      });
+      remaining -= chunk;
+      index++;
+    }
+    return splits;
+  } else {
+    return [vault];
+  }
+});
 
-      const combinedStatus: CombinedTransactionStatus = {
-        primary: primaryData,
-        mempoolTimestamps,
+
+  // const toggleVault = (id: string) => {
+  //   setSelectedVaults((prev) =>
+  //     prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+  //   );
+  // };
+  const toggleVault = (id: string) => {
+  setSelectedVaults((prev) => (prev.includes(id) ? [] : [id]));
+};
+
+ const toggleSelectAll = () => {
+  if (allSelected) {
+    setSelectedVaults([]);
+  } else {
+    const allIds = processedVaults
+      .map((v) => v.id?.toString())
+      .filter((id): id is string => !!id); 
+    setSelectedVaults(allIds);
+  }
+  setAllSelected(!allSelected);
+};
+
+
+  useEffect(() => {
+  setAllSelected(
+    processedVaults.length > 0 &&
+    selectedVaults.length === processedVaults.length
+  );
+}, [selectedVaults, processedVaults]);
+
+const totalDebt = processedVaults
+  .filter((v) => selectedVaults.includes(String(v.id)))
+  .reduce((sum, v) => sum + Number(v.usdb_amount ?? 0), 0);
+
+const totalCollateral =
+  processedVaults
+    .filter((v) => selectedVaults.includes(String(v.id)))
+    .reduce((sum) => sum + 5000, 0) / 100_000_000;
+
+  
+
+const handleWithdraw = async (): Promise<void> => {
+  const selectedVaultTxIds = processedVaults
+    .filter((vault) => selectedVaults.includes(String(vault.id)))
+    .map((vault) => vault.tx_id)
+    .filter((txId): txId is string => !!txId);
+
+  const payload: LiquidationRequest = {
+    txid: selectedVaultTxIds.join(","),
+    paymentAddress: wallet?.paymentAddress?.address ?? '',
+    ordinalsAddress: wallet?.ordinalsAddress?.address ?? '',
+  };
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/liquidation/liquidate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: LiquidationResponse = await response.json();
+
+    if (data && data.data) {
+      const liquidationState: LiquidationState = {
+        data: data.data,
+        paymentAddress: payload.paymentAddress,
+        ordinalsAddress: payload.ordinalsAddress,
       };
 
-      setTransactionStatus(combinedStatus);
-      console.log("✅ Combined Transaction Status:", combinedStatus);
-    } catch (error) {
-      console.error("❌ Error fetching transaction statuses:", error);
+      setLiquidationData(liquidationState);
+      setShowWithDrawModal(true);
     }
-  };
 
-  if (mintData && networkResponse) {
-    fetchTxStatus();
+    console.log('✅ Liquidation Response:', data);
+  } catch (error) {
+    console.error('❌ Error during liquidation API call:', error);
   }
-}, [mintData, networkResponse]);
+};
 
 
- 
+const handleWithdrawPsbt = async (): Promise<void> => {
+  if (!liquidationData) {
+    console.warn("⚠️ No liquidation data available.");
+    return;
+  }
 
-  const handleWithdraw = () => {
-   setShowWithDrawModal(true);
-  };
+  const { data: liquidationDetails, paymentAddress, ordinalsAddress } = liquidationData;
+  const psbtBase64 = liquidationDetails?.psbt;
+
+  if (!psbtBase64) {
+    console.error("❌ Missing PSBT data.");
+    return;
+  }
+
+  if (!paymentAddress || !ordinalsAddress) {
+    console.error("❌ Missing address data.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const signInputs: Record<string, number[]> = {
+      [ordinalsAddress]: [0],
+      [paymentAddress]: [1],
+    };
+
+    const signed = await signPsbt({
+      psbtBase64,
+      signInputs,
+      broadcast: false,
+    });
+
+    console.log('signed.txid', signed?.txid);
+    if (signed?.txid) {
+      console.log("✅ Signed and broadcasted TX:", signed.txid);
+
+      try {
+        const deleteUrl = `${import.meta.env.VITE_API_URL}/transaction/vault/delete/${signed.txid}`;
+        const deleteRes = await fetch(deleteUrl, { method: "DELETE" });
+
+        if (!deleteRes.ok) {
+          throw new Error(`❌ Failed to delete vault: ${deleteRes.status}`);
+        }
+
+        console.log("🗑️ Vault deleted successfully.");
+      } catch (deleteErr) {
+        console.error("❌ Error deleting vault:", deleteErr);
+      }
+    } else {
+      console.warn("⚠️ Transaction was not signed or broadcasted.");
+    }
+  } catch (err) {
+    console.error("❌ Signing or broadcasting failed:", err);
+  } finally {
+    setShowTransactionModal(false);
+    setLoading(false);
+  }
+};
+
+
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
@@ -426,11 +542,7 @@ useEffect(() => {
                     allSelected={allSelected}
                     totalDebt={totalDebt}
                     totalCollateral={totalCollateral}
-                    handleWithdraw={handleWithdraw}
-                    transactionStatus={transactionStatus}
-                    txIds={mintData?.data?.finalPsbt?.selectedInputs?.map(
-                      (input) => input.txid
-                    )}
+                  
                   />
                 </div>
               </div>
@@ -464,6 +576,7 @@ useEffect(() => {
         <WithdrawModal
           show={showWithDrawModal}
           onClose={() => setShowWithDrawModal(false)}
+          handleWithdrawPsbt={handleWithdrawPsbt}
         />
       </main>
     </div>
