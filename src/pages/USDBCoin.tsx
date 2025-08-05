@@ -428,10 +428,10 @@ const handleWithdrawPsbt = async (): Promise<void> => {
     const signed = await signPsbt({
       psbtBase64,
       signInputs,
-      broadcast: false,
+      broadcast: true,
     });
 
-    console.log('signed.txid', signed?.txid);
+    console.log('signed.txid', signed);
     if (signed?.txid) {
       console.log("✅ Signed and broadcasted TX:", signed.txid);
 
