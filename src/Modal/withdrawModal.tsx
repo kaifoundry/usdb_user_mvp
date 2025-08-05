@@ -1,13 +1,5 @@
 import { useState } from "react";
 import type { Theme } from "../types/theme";
-
-
-// components/WithdrawModal.tsx
-type WithdrawModalProps = {
-  show: boolean;
-  onClose: () => void;
-};
-
 const WithdrawModal = ({ show, onClose, }: WithdrawModalProps) => {
  const [theme, setTheme] = useState<Theme>(
       localStorage.getItem("theme") === "light" ||

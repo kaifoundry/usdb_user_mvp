@@ -1,18 +1,5 @@
-import { type RuneBalance } from "../api/getRunesBalance";
-import type { CombinedTransactionStatus } from "../types/transactionApiResponse";
+import type { WithDrawPanelProps } from "../interfaces/components/withDrawPanelInterface";
 
-interface Props {
-  vaults: RuneBalance[];
-  selectedVaults: string[];
-  toggleVault: (id: string) => void;
-  toggleSelectAll: () => void;
-  allSelected: boolean;
-  totalDebt: number;
-  totalCollateral: number;
-  handleWithdraw: () => void;
-  transactionStatus: CombinedTransactionStatus | null;
-  txIds: string[] | undefined;
-}
 
 export default function WithdrawPanel({
   vaults,
@@ -24,8 +11,8 @@ export default function WithdrawPanel({
   totalCollateral,
   transactionStatus,
   txIds,
-}: Props) {
-  console.log("txIds", txIds);
+}: WithDrawPanelProps) {
+
   const isConfirmed = transactionStatus?.primary?.confirmed === true;
 
   return (

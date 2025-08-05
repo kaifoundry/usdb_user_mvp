@@ -1,9 +1,5 @@
 import { useCallback } from 'react';
 
-/**
- * 1 BTC = 100,000,000 Satoshis
- */
-
 const SATOSHIS_PER_BTC = 100_000_000;
 
 const useBTCConverter = () => {

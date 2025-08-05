@@ -2,17 +2,9 @@ import {
   request,
   RpcErrorCode,
 } from "sats-connect";
+import type { SignPsbtParams, SignPsbtResult } from "../interfaces/api/signPsbtInterface";
 
-interface SignPsbtParams {
-  psbtBase64: string;
-  signInputs: Record<string, number[]>;
-  broadcast?: boolean;
-}
 
-interface SignPsbtResult {
-  psbt: string;  
-  txid?: string; 
-}
 
 export async function signPsbt({
   psbtBase64,

@@ -1,17 +1,5 @@
 import useBTCConverter from "../Hooks/useBTCConverter";
-
-interface MintPanelProps {
-  btcDeposit: string;
-  error: string;
-  getBalanceResult: string | null;
-  mintAmount: number;
-  collateralRatio: string;
-  liquidationPrice: string;
-  requiredCollateralBTC: string;
-  requiredCollateralSATs: string;
-  handleBtcDeposit: (v: string) => void;
-}
-
+import type { MintPanelProps } from "../interfaces/components/mintPanelInterface";
 export default function MintPanel({
   btcDeposit,
   error,

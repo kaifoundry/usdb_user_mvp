@@ -1,21 +1,8 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { request, AddressPurpose, RpcErrorCode } from "sats-connect";
+import type { ConnectWalletResult, WalletContextType } from "../interfaces/api/connectWalletInterface";
 
-export interface WalletAddressItem {
-  purpose: any; 
-  address: string;
-  publicKey: string; 
-}
 
-export interface ConnectWalletResult {
-  paymentAddress?: WalletAddressItem;
-  ordinalsAddress?: WalletAddressItem;
-  stacksAddress?: WalletAddressItem;
-}
-
-/**
- * Call sats-connect and resolve wallet addresses.
- */
 export const connectWalletApi = async (): Promise<ConnectWalletResult> => {
   try {
     const response = await request("wallet_connect", null);
@@ -62,13 +49,6 @@ export const disconnectWalletApi = async (): Promise<void>  => {
   }
 };
 
-interface WalletContextType {
-  wallet: ConnectWalletResult | null;
-  loading: boolean;
-  error: string | null;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => Promise<void>;
-}
 
 const WalletContext = createContext<WalletContextType>({
   wallet: null,

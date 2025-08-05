@@ -1,5 +1,3 @@
-import React from "react";
-
 type OutputData = Array<{
   address: string;
   amount: string;

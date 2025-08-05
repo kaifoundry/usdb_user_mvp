@@ -1,14 +1,6 @@
 import { request, RpcErrorCode } from "sats-connect";
+import type { GetBalanceResult } from "../interfaces/api/getBalanceInterface";
 
-export interface PaymentBalance {
-  confirmed: string; 
-  unconfirmed: string; 
-  total: string;        
-}
-
-export interface GetBalanceResult {
-  paymentAddress?: PaymentBalance;
-}
 
 /**
  * Get the connected wallet's BTC balance.

@@ -4,3 +4,4 @@ export const MOCK_SATOSHI_PER_BTC = 5000;
 
 export const MOCK_BTC_PRICE = 65000;
 export const MIN_COLLATERAL_RATIO = 1.5
+export const DISPLAY_COLLATERAL_RATIO = '150';

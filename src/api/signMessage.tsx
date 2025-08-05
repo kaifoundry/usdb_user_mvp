@@ -1,20 +1,10 @@
 import {
   request,
   RpcErrorCode,
-  MessageSigningProtocols,
 } from "sats-connect";
+import type { SignMessageParams, SignMessageResult } from "../interfaces/api/signMessageInterface";
 
-export interface SignMessageParams {
-  address: string;
-  message: string;
-  protocol?: MessageSigningProtocols;
-}
 
-export interface SignMessageResult {
-  signature: string;
-  messageHash: string;
-  address: string;
-}
 
 export async function signMessage({
   address,

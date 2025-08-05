@@ -8,13 +8,12 @@ import { getBalance } from "../api/getBalance";
 // import { signMessage } from "../api/signMessage";
 // import { MessageSigningProtocols } from "sats-connect";
 import { signPsbt } from "../api/signPsbt";
-import { getRunesBalance, type RuneBalance } from "../api/getRunesBalance";
+import { getRunesBalance} from "../api/getRunesBalance";
 import type { TabType } from "../types/tab";
 import {
-  MIN_COLLATERAL_RATIO,
-  MOCK_BTC_PRICE,
   MOCK_SATOSHI_PER_BTC,
   MOCK_USDB_PRICE,
+  DISPLAY_COLLATERAL_RATIO
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
 import useBTCConverter from "../Hooks/useBTCConverter";
@@ -29,6 +28,7 @@ import type {
 } from "../types/mintApiResponse";
 import type { CombinedTransactionStatus, TransactionApiResponse } from "../types/transactionApiResponse";
 import WithdrawModal from "../Modal/withdrawModal";
+import type { RuneBalance } from "../interfaces/api/getRunesBalanceInterface";
 
 export default function USDBCoin() {
   const { satsToBtc } = useBTCConverter();
@@ -36,9 +36,7 @@ export default function USDBCoin() {
   const [btcDeposit, setBtcDeposit] = useState(satsToBtc(MOCK_SATOSHI_PER_BTC));
   const [btcDepositSats, setBtcDepositSats] = useState("--");
   const [mintAmount, setMintAmount] = useState("1000");
-  const [collateralRatio, setCollateralRatio] = useState(
-    MIN_COLLATERAL_RATIO.toString()
-  );
+  const [collateralRatio, setCollateralRatio] = useState(DISPLAY_COLLATERAL_RATIO);
   const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
   const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("5000");
@@ -98,17 +96,20 @@ export default function USDBCoin() {
     if (wallet) {
       (async () => {
         const result = await getRunesBalance();
-        console.log("Vaults:", result);
         if (result) setVaults(result);
       })();
     }
   }, [wallet]);
 
- useEffect(() => {
+
+
+useEffect(() => {
   const btc = parseFloat(btcDeposit);
+  console.log("BTC Deposit:", btc);
+
   if (!btc || btc <= 0) {
     setMintAmount("1000");
-    setCollateralRatio("--");
+    setCollateralRatio(DISPLAY_COLLATERAL_RATIO);
     setLiquidationPrice("$0.00");
     setBtcDepositSats("--");
     setRequiredCollateralBTC("--");
@@ -117,25 +118,25 @@ export default function USDBCoin() {
   }
 
   const mintable = MOCK_USDB_PRICE;
-  const collateralValueUSD = btc * MOCK_BTC_PRICE;
-  const actualRatio = (collateralValueUSD / mintable) * 100;
 
   setMintAmount(mintable.toFixed(0));
-  setCollateralRatio(`${actualRatio}`);
+  setCollateralRatio(DISPLAY_COLLATERAL_RATIO); // use const
 
-  const liquidation = mintable / btc;
-  setLiquidationPrice(`$${liquidation.toFixed(2)}`);
-
+  // const liquidation = mintable / btc;
+  // setLiquidationPrice(`$${liquidation.toFixed(2)}`);
+setLiquidationPrice("$0.00");
   const sats = btc * 100_000_000;
   setBtcDepositSats(sats.toFixed(0));
 
-  const requiredBTC = (mintable * MIN_COLLATERAL_RATIO) / MOCK_BTC_PRICE;
-  const requiredSATs = requiredBTC * 100_000_000;
+  // const requiredBTC = (mintable * MIN_COLLATERAL_RATIO) / MOCK_BTC_PRICE;
+  // const requiredSATs = requiredBTC * 100_000_000;
 
-  setRequiredCollateralBTC(requiredBTC.toFixed(8));
-  setRequiredCollateralSATs(requiredSATs.toFixed(0));
+  // setRequiredCollateralBTC(requiredBTC.toFixed(8));
+  // setRequiredCollateralSATs(requiredSATs.toFixed(0));
+  setRequiredCollateralBTC("--");
+    setRequiredCollateralSATs("--");
 }, [btcDeposit]);
-console.log('wallet:', wallet);
+
 
   const handleMint = async () => {
     const apiUrl = `${import.meta.env.VITE_API_URL}/mint/mint-btc-lock`;
@@ -359,8 +360,6 @@ useEffect(() => {
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
       <Header
-        show={showTransactionModal}
-        onClose={() => setShowTransactionModal(false)}
       />
 
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
