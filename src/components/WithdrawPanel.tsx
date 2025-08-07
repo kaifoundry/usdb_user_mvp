@@ -1,6 +1,6 @@
 import { useTimeAgo } from "../Hooks/useTimeAgo";
-import type { WithDrawPanelProps } from "../interfaces/components/withDrawPanelInterface";
-import time from "../assets/Frame.svg";
+import type { WithDrawPanelProps } from "../interfaces/components/withDrawPanelpropsInterface";
+import time from "/assets/Frame.svg";
 export default function WithdrawPanel({
   vaults,
   selectedVaults,

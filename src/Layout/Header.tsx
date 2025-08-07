@@ -4,7 +4,7 @@ import { Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import type { Theme } from "../types/theme";
-import logo from "../assets/logowhite.png";
+import logo from "/assets/logowhite.png";
 import { getBalance } from "../api/getBalance";
 import useBTCConverter from "../Hooks/useBTCConverter";
 import { getRunesBalance } from "../api/getRunesBalance";

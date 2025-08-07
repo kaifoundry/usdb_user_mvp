@@ -1,22 +1,19 @@
 import { useEffect, useState } from "react";
-import { Wrench } from "lucide-react";
 import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
+import { useBTCPrice } from "../Hooks/useBTCPrice";
+import NetworkBanner from "../components/networkBanner";
 import { useWallet } from "../api/connectWallet";
 import { getAddresses } from "../api/getAddresses";
 import { getBalance } from "../api/getBalance";
-// import { signMessage } from "../api/signMessage";
-// import { MessageSigningProtocols } from "sats-connect";
 import { signPsbt } from "../api/signPsbt";
-import { getRunesBalance} from "../api/getRunesBalance";
 import type { TabType } from "../types/tab";
 import {
-  MOCK_SATOSHI_PER_BTC,
-  MOCK_USDB_PRICE,
-  DISPLAY_COLLATERAL_RATIO
+  FEE_REQUIRED_TO_MINT,
+  MINT_AMOUNT,
+  COLLATERAL_RATIO,
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
-import useBTCConverter from "../Hooks/useBTCConverter";
 import { getNetwork, type GetNetworkResponse } from "../api/getNetwork";
 import WithdrawPanel from "../components/WithdrawPanel";
 import MintModal from "../Modal/mintModal";
@@ -25,38 +22,45 @@ import type {
   MintData,
   OutputData,
 } from "../types/mintApiResponse";
-import type { CombinedTransactionStatus, TransactionApiResponse } from "../types/transactionApiResponse";
 import WithdrawModal from "../Modal/withdrawModal";
-import type { ConfirmationRequest, ConfirmationResponse } from "../interfaces/pages/usdbCoinInterface";
+import type {
+  ConfirmationRequest,
+  ConfirmationResponse,
+} from "../interfaces/pages/usdbCoinInterface";
 import type { VaultTransaction } from "../interfaces/pages/getTransactionInterface";
-import type { LiquidationRequest, LiquidationResponse, LiquidationState } from "../interfaces/pages/liquidationInterface";
+import type {
+  LiquidationRequest,
+  LiquidationResponse,
+  LiquidationState,
+} from "../interfaces/pages/liquidationInterface";
+import { Button } from "../components/button";
+import Tabs from "../components/tabs";
 
 export default function USDBCoin() {
-  const { satsToBtc } = useBTCConverter();
+  const btcPrice = useBTCPrice();
+  const { wallet } = useWallet();
   const [activeTab, setActiveTab] = useState<TabType>("mint");
-  const [btcDeposit, setBtcDeposit] = useState(satsToBtc(MOCK_SATOSHI_PER_BTC));
-  const [btcDepositSats, setBtcDepositSats] = useState("--");
-  const [mintAmount, setMintAmount] = useState("1000");
-  const [collateralRatio, setCollateralRatio] = useState(DISPLAY_COLLATERAL_RATIO);
-  const [liquidationPrice, setLiquidationPrice] = useState("$0.00");
+  const [mintAmount, setMintAmount] = useState(MINT_AMOUNT.toFixed(2));
+  const [collateralRatio, setCollateralRatio] = useState(COLLATERAL_RATIO);
+  const [liquidationPrice, setLiquidationPrice] = useState("$0");
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
-  const [requiredCollateralSATs, setRequiredCollateralSATs] = useState("5000");
-  const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
   const [networkResponse, setNetworkResponse] =
     useState<GetNetworkResponse | null>(null);
   const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
-  const { wallet } = useWallet();
   const [vaults, setVaults] = useState<VaultTransaction[]>([]);
   const [allSelected, setAllSelected] = useState(false);
   const [modalOutputs, setModalOutputs] = useState<OutputData | null>(null);
   const [mintData, setMintData] = useState<MintData | null>(null);
-  const [liquidationData, setLiquidationData] = useState<LiquidationState | null>(null);
-
+  const [liquidationData, setLiquidationData] =
+    useState<LiquidationState | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithDrawModal, setShowWithDrawModal] = useState(false);
+
+  const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
 
   useEffect(() => {
@@ -81,67 +85,48 @@ export default function USDBCoin() {
     }
   }, [paymentAddress]);
 
-  useEffect(() => {
-    const inputAmount = parseFloat(btcDeposit);
-    if (isNaN(inputAmount)) {
-      setError("");
-      return;
-    }
-    if (getBalanceResult === null) return;
-
-    const availableBalance = Number(getBalanceResult) / 100_000_000;
-    setError(inputAmount > availableBalance ? "Insufficient Balance" : "");
-  }, [btcDeposit, getBalanceResult]);
-
 useEffect(() => {
-  const btc = parseFloat(btcDeposit);
-  console.log("BTC Deposit:", btc);
+  if (!btcPrice || btcPrice === 0) return;
+  const requiredCollateral = Math.ceil((MINT_AMOUNT * COLLATERAL_RATIO / 100 / btcPrice) * 1e8) / 1e8;
+  setMintAmount(MINT_AMOUNT.toFixed(2));
+  setCollateralRatio(COLLATERAL_RATIO);
+ setLiquidationPrice(`$${Math.ceil((btcPrice * 3) / 4)}`);
+  setRequiredCollateralBTC(requiredCollateral.toFixed(8));
+}, [btcPrice]);
 
-  if (!btc || btc <= 0) {
-    setMintAmount("1000");
-    setCollateralRatio(DISPLAY_COLLATERAL_RATIO);
-    setLiquidationPrice("$0.00");
-    setBtcDepositSats("--");
-    setRequiredCollateralBTC("--");
-    setRequiredCollateralSATs("--");
-    return;
-  }
 
-  const mintable = MOCK_USDB_PRICE;
+ useEffect(() => {
+  if (!getBalanceResult || requiredCollateralBTC === "--") return;
 
-  setMintAmount(mintable.toFixed(0));
-  setCollateralRatio(DISPLAY_COLLATERAL_RATIO); // use const
+  const balanceInSats = parseFloat(getBalanceResult);
+  if (isNaN(balanceInSats)) return;
 
-  // const liquidation = mintable / btc;
-  // setLiquidationPrice(`$${liquidation.toFixed(2)}`);
-setLiquidationPrice("$0.00");
-  const sats = btc * 100_000_000;
-  setBtcDepositSats(sats.toFixed(0));
+  const availableBalance = balanceInSats / 100_000_000;
+  const totalRequired = parseFloat(requiredCollateralBTC) + FEE_REQUIRED_TO_MINT;
 
-  // const requiredBTC = (mintable * MIN_COLLATERAL_RATIO) / MOCK_BTC_PRICE;
-  // const requiredSATs = requiredBTC * 100_000_000;
-
-  // setRequiredCollateralBTC(requiredBTC.toFixed(8));
-  // setRequiredCollateralSATs(requiredSATs.toFixed(0));
-  setRequiredCollateralBTC("--");
-    setRequiredCollateralSATs("--");
-}, [btcDeposit]);
+  setError(availableBalance < totalRequired ? "Insufficient Balance" : "");
+}, [getBalanceResult, requiredCollateralBTC]);
 
 
   const handleMint = async () => {
     const apiUrl = `${import.meta.env.VITE_API_URL}/mint/mint-btc-lock`;
     const destination = wallet?.ordinalsAddress?.address;
     const btcAddress = wallet?.paymentAddress?.address;
-    const ordinalPublicKey= wallet?.ordinalsAddress?.publicKey;
-    const paymentAddressPublicKey= wallet?.paymentAddress?.publicKey;
+    const ordinalPublicKey = wallet?.ordinalsAddress?.publicKey;
+    const paymentAddressPublicKey = wallet?.paymentAddress?.publicKey;
 
-    console.log()
+    console.log();
     if (!apiUrl || !destination || !btcAddress) {
       console.error("❌ Missing API URL or wallet addresses");
       return;
     }
 
-    const payload = { destination, btcAddress ,ordinalPublicKey,paymentAddressPublicKey};
+    const payload = {
+      destination,
+      btcAddress,
+      ordinalPublicKey,
+      paymentAddressPublicKey,
+    };
     setLoading(true);
     try {
       const response = await fetch(apiUrl, {
@@ -176,142 +161,149 @@ setLiquidationPrice("$0.00");
     }
   };
 
-const handlePsbt = async () => {
-  if (!mintData) {
-    console.warn("⚠️ No mint data available.");
-    return;
-  }
+  const handlePsbt = async () => {
+    if (!mintData) {
+      console.warn("⚠️ No mint data available.");
+      return;
+    }
 
-  const { data, paymentAddress } = mintData;
-  const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
-  const selectedInputs = data.finalPsbt?.selectedInputs;
-  const vaultAddress = data.vault_address;
+    const { data, paymentAddress } = mintData;
+    const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
+    const selectedInputs = data.finalPsbt?.selectedInputs;
+    const vaultAddress = data.vault_address;
 
-  if (!modifiedPsbt || !selectedInputs?.length) {
-    console.error("❌ Invalid PSBT or inputs.");
-    return;
-  }
+    if (!modifiedPsbt || !selectedInputs?.length) {
+      console.error("❌ Invalid PSBT or inputs.");
+      return;
+    }
 
-  const inputIndexes = selectedInputs.map((_, idx) => idx);
-  const signInputs: Record<string, number[]> = {
-    [paymentAddress]: inputIndexes,
+    const inputIndexes = selectedInputs.map((_, idx) => idx);
+    const signInputs: Record<string, number[]> = {
+      [paymentAddress]: inputIndexes,
+    };
+
+    setLoading(true);
+
+    try {
+      const signed = await signPsbt({
+        psbtBase64: modifiedPsbt,
+        signInputs,
+        broadcast: true,
+      });
+
+      if (signed?.txid) {
+        const confirmation = await checkTransactionConfirmation(
+          signed.txid,
+          paymentAddress,
+          vaultAddress
+        );
+
+        // optionally handle confirmation result
+        console.log("Confirmation status:", confirmation);
+      }
+    } catch (err) {
+      console.error("❌ Signing or confirmation failed:", err);
+    } finally {
+      setShowTransactionModal(false);
+      setLoading(false);
+    }
   };
 
-  setLoading(true);
+  useEffect(() => {
+    if (paymentAddress && activeTab === "withdraw") {
+      getVaultTransactions(paymentAddress);
+    }
+  }, [paymentAddress, activeTab]);
 
-  try {
-    const signed = await signPsbt({
-      psbtBase64: modifiedPsbt,
-      signInputs,
-      broadcast: true,
-    });
+  const getVaultTransactions = async (
+    paymentAddress: string
+  ): Promise<VaultTransaction[]> => {
+    const url = `${
+      import.meta.env.VITE_API_URL
+    }/transaction/vault?payment_address=${paymentAddress}`;
 
-    if (signed?.txid) {
-      const confirmation = await checkTransactionConfirmation(
-        signed.txid,
-        paymentAddress,
-        vaultAddress
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch vault transactions: ${response.statusText}`
+        );
+      }
+
+      const data: VaultTransaction[] = await response.json();
+      setVaults(data);
+      console.log("✅ Vault transactions:", data);
+      return data;
+    } catch (error) {
+      console.error("❌ Error fetching vault transactions:", error);
+      throw error;
+    }
+  };
+
+  const checkTransactionConfirmation = async (
+    txid: string,
+    paymentAddress: string,
+    vaultAddress: string
+  ): Promise<ConfirmationResponse> => {
+    const requestBody: ConfirmationRequest = {
+      txid,
+      paymentAddress,
+      vaultAddress,
+    };
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/transaction/check/confirmation`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
       );
 
-      // optionally handle confirmation result
-      console.log("Confirmation status:", confirmation);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to check transaction confirmation: ${response.statusText}`
+        );
+      }
+
+      const data: ConfirmationResponse = await response.json();
+      console.log("✅ Transaction confirmation response:", data);
+      return data;
+    } catch (error) {
+      console.error("❌ Error checking transaction confirmation:", error);
+      throw error;
     }
-  } catch (err) {
-    console.error("❌ Signing or confirmation failed:", err);
-  } finally {
-    setShowTransactionModal(false);
-    setLoading(false);
-  }
-};
-
-
-useEffect(() => {
-  if (paymentAddress && activeTab === "withdraw") {
-  getVaultTransactions(paymentAddress)
-  }
-},[paymentAddress,activeTab]);
-
-const getVaultTransactions = async (
-  paymentAddress: string
-): Promise<VaultTransaction[]> => {
-  const url = `${import.meta.env.VITE_API_URL}/transaction/vault?payment_address=${(paymentAddress)}`;
-
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch vault transactions: ${response.statusText}`);
-    }
-
-    const data: VaultTransaction[] = await response.json();
-    setVaults(data);
-    console.log("✅ Vault transactions:", data);
-    return data;
-  } catch (error) {
-    console.error("❌ Error fetching vault transactions:", error);
-    throw error;
-  }
-};
-
-const checkTransactionConfirmation = async (
-  txid: string,
-  paymentAddress: string,
-  vaultAddress: string
-): Promise<ConfirmationResponse> => {
-  const requestBody: ConfirmationRequest = {
-    txid,
-    paymentAddress,
-    vaultAddress,
   };
 
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/transaction/check/confirmation`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to check transaction confirmation: ${response.statusText}`);
+  const processedVaults = vaults.flatMap((vault) => {
+    if (vault.usdb_amount > 10000) {
+      const splits: VaultTransaction[] = [];
+      let remaining = vault.usdb_amount;
+      let index = 1;
+      while (remaining > 0) {
+        const chunk = remaining >= 10000 ? 10000 : remaining;
+        splits.push({
+          ...vault,
+          id: Number(`${vault.id}${index}`), // make new unique ID
+          usdb_amount: chunk,
+        });
+        remaining -= chunk;
+        index++;
+      }
+      return splits;
+    } else {
+      return [vault];
     }
-
-    const data: ConfirmationResponse = await response.json();
-    console.log("✅ Transaction confirmation response:", data);
-    return data;
-  } catch (error) {
-    console.error("❌ Error checking transaction confirmation:", error);
-    throw error;
-  }
-};
-
- const processedVaults = vaults.flatMap((vault) => {
-  if (vault.usdb_amount > 10000) {
-    const splits: VaultTransaction[] = [];
-    let remaining = vault.usdb_amount;
-    let index = 1;
-    while (remaining > 0) {
-      const chunk = remaining >= 10000 ? 10000 : remaining;
-      splits.push({
-        ...vault,
-        id: Number(`${vault.id}${index}`), // make new unique ID
-        usdb_amount: chunk,
-      });
-      remaining -= chunk;
-      index++;
-    }
-    return splits;
-  } else {
-    return [vault];
-  }
-});
-
+  });
 
   // const toggleVault = (id: string) => {
   //   setSelectedVaults((prev) =>
@@ -319,124 +311,136 @@ const checkTransactionConfirmation = async (
   //   );
   // };
   const toggleVault = (id: string) => {
-  setSelectedVaults((prev) => (prev.includes(id) ? [] : [id]));
-};
-
- const toggleSelectAll = () => {
-  if (allSelected) {
-    setSelectedVaults([]);
-  } else {
-    const allIds = processedVaults
-      .map((v) => v.id?.toString())
-      .filter((id): id is string => !!id); 
-    setSelectedVaults(allIds);
-  }
-  setAllSelected(!allSelected);
-};
-
-
-  useEffect(() => {
-  setAllSelected(
-    processedVaults.length > 0 &&
-    selectedVaults.length === processedVaults.length
-  );
-}, [selectedVaults, processedVaults]);
-
-const totalDebt = processedVaults
-  .filter((v) => selectedVaults.includes(String(v.id)))
-  .reduce((sum, v) => sum + Number(v.usdb_amount ?? 0), 0);
-
-const totalCollateral =
-  processedVaults
-    .filter((v) => selectedVaults.includes(String(v.id)))
-    .reduce((sum) => sum + 5000, 0) / 100_000_000;
-
-  
-
-const handleWithdraw = async (): Promise<void> => {
-  const selectedVaultTxIds = processedVaults
-    .filter((vault) => selectedVaults.includes(String(vault.id)))
-    .map((vault) => vault.tx_id)
-    .filter((txId): txId is string => !!txId);
-
-  const payload: LiquidationRequest = {
-    txid: selectedVaultTxIds.join(","),
-    paymentAddress: wallet?.paymentAddress?.address ?? '',
-    ordinalsAddress: wallet?.ordinalsAddress?.address ?? '',
+    setSelectedVaults((prev) => (prev.includes(id) ? [] : [id]));
   };
 
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/liquidation/liquidate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedVaults([]);
+    } else {
+      const allIds = processedVaults
+        .map((v) => v.id?.toString())
+        .filter((id): id is string => !!id);
+      setSelectedVaults(allIds);
     }
+    setAllSelected(!allSelected);
+  };
 
-    const data: LiquidationResponse = await response.json();
+  useEffect(() => {
+    setAllSelected(
+      processedVaults.length > 0 &&
+        selectedVaults.length === processedVaults.length
+    );
+  }, [selectedVaults, processedVaults]);
 
-    if (data && data.data) {
-      const liquidationState: LiquidationState = {
-        data: data.data,
-        paymentAddress: payload.paymentAddress,
-        ordinalsAddress: payload.ordinalsAddress,
-      };
+  const totalDebt = processedVaults
+    .filter((v) => selectedVaults.includes(String(v.id)))
+    .reduce((sum, v) => sum + Number(v.usdb_amount ?? 0), 0);
 
-      setLiquidationData(liquidationState);
-      setShowWithDrawModal(true);
-    }
+  const totalCollateral =
+    processedVaults
+      .filter((v) => selectedVaults.includes(String(v.id)))
+      .reduce((sum) => sum + 5000, 0) / 100_000_000;
 
-    console.log('✅ Liquidation Response:', data);
-  } catch (error) {
-    console.error('❌ Error during liquidation API call:', error);
-  }
-};
+  const handleWithdraw = async (): Promise<void> => {
+    const selectedVaultTxIds = processedVaults
+      .filter((vault) => selectedVaults.includes(String(vault.id)))
+      .map((vault) => vault.tx_id)
+      .filter((txId): txId is string => !!txId);
 
-
-const handleWithdrawPsbt = async (): Promise<void> => {
-  if (!liquidationData) {
-    console.warn("⚠️ No liquidation data available.");
-    return;
-  }
-
-  const { data: liquidationDetails, paymentAddress, ordinalsAddress } = liquidationData;
-  const psbtBase64 = liquidationDetails?.psbt;
-
-  if (!psbtBase64) {
-    console.error("❌ Missing PSBT data.");
-    return;
-  }
-
-  if (!paymentAddress || !ordinalsAddress) {
-    console.error("❌ Missing address data.");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const signInputs: Record<string, number[]> = {
-      [ordinalsAddress]: [0],
-      [paymentAddress]: [1],
+    const payload: LiquidationRequest = {
+      txid: selectedVaultTxIds.join(","),
+      paymentAddress: wallet?.paymentAddress?.address ?? "",
+      ordinalsAddress: wallet?.ordinalsAddress?.address ?? "",
     };
 
-    const signed = await signPsbt({
-      psbtBase64,
-      signInputs,
-      broadcast: true,
-    });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/liquidation/liquidate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-    console.log('signed.txid', signed);
-    if (signed?.txid) {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data: LiquidationResponse = await response.json();
+
+      if (data && data.data) {
+        const liquidationState: LiquidationState = {
+          data: data.data,
+          paymentAddress: payload.paymentAddress,
+          ordinalsAddress: payload.ordinalsAddress,
+        };
+
+        setLiquidationData(liquidationState);
+        setShowWithDrawModal(true);
+      }
+
+      console.log("✅ Liquidation Response:", data);
+    } catch (error) {
+      console.error("❌ Error during liquidation API call:", error);
+    }
+  };
+
+  const handleWithdrawPsbt = async (): Promise<void> => {
+    if (!liquidationData) {
+      console.warn("⚠️ No liquidation data available.");
+      return;
+    }
+
+    const {
+      data: liquidationDetails,
+      paymentAddress,
+      ordinalsAddress,
+    } = liquidationData;
+    const psbtBase64 = liquidationDetails?.psbt;
+
+    if (!psbtBase64) {
+      console.error("❌ Missing PSBT data.");
+      return;
+    }
+
+    if (!paymentAddress || !ordinalsAddress) {
+      console.error("❌ Missing address data.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const signInputs: Record<string, number[]> = {
+        [ordinalsAddress]: [0],
+        [paymentAddress]: [1],
+      };
+
+      console.log("psbtBase64", psbtBase64);
+      console.log("signInputs", signInputs);
+      const signed = await signPsbt({
+        psbtBase64,
+        signInputs,
+        broadcast: true,
+      });
+
+      console.log("🔄 Signing result:", signed);
+
+      if (!signed || !signed.txid) {
+        console.warn("⚠️ Transaction was not signed or broadcasted.");
+        return;
+      }
+
       console.log("✅ Signed and broadcasted TX:", signed.txid);
 
       try {
-        const deleteUrl = `${import.meta.env.VITE_API_URL}/transaction/vault/delete/${signed.txid}`;
+        const deleteUrl = `${
+          import.meta.env.VITE_API_URL
+        }/transaction/vault/delete/${signed.txid}`;
         const deleteRes = await fetch(deleteUrl, { method: "DELETE" });
 
         if (!deleteRes.ok) {
@@ -447,20 +451,18 @@ const handleWithdrawPsbt = async (): Promise<void> => {
       } catch (deleteErr) {
         console.error("❌ Error deleting vault:", deleteErr);
       }
-    } else {
-      console.warn("⚠️ Transaction was not signed or broadcasted.");
+    } catch (err: any) {
+      if (err?.message?.includes("User rejected")) {
+        console.warn("❌ User rejected the PSBT signing request.");
+      } else {
+        console.error("❌ Signing or broadcasting failed:", err);
+      }
+    } finally {
+      setShowTransactionModal(false);
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("❌ Signing or broadcasting failed:", err);
-  } finally {
-    setShowTransactionModal(false);
-    setLoading(false);
-  }
-};
+  };
 
-
-
-  const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
   // async function handleSign() {
   //   if (!paymentAddress) return;
@@ -475,40 +477,15 @@ const handleWithdrawPsbt = async (): Promise<void> => {
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
-      <Header
-      />
-
+      <Header />
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
-        <div className="test-net-text border md:border-[1.2px] border-dashed bg-[rgba(255,149,0,0.2)] border-[rgba(255,149,0,0.32)] rounded-xl md:rounded-2xl py-2.5 md:px-4 md:py-2 w-full max-w-lg mx-auto mb-4 flex items-center justify-center gap-2">
-          <Wrench size={19} />
-          <span>
-            You are in {`${networkResponse?.bitcoin?.name ?? "Testnet"}`} mode
-          </span>
-        </div>
+        <NetworkBanner
+          networkName={networkResponse?.bitcoin?.name ?? "Testnet"}
+        />
 
         <div className="w-full max-w-lg mx-auto">
           <div className="app-card rounded-2xl p-2 md:px-8 md:pb-6">
-            <div
-              className="flex border-b"
-              style={{ borderColor: "var(--card-border-color)" }}
-            >
-              <button
-                onClick={() => handleTabChange("mint")}
-                className={`tab flex-1 py-3 text-base font-medium ${
-                  activeTab === "mint" ? "active" : ""
-                }`}
-              >
-                Mint
-              </button>
-              <button
-                onClick={() => handleTabChange("withdraw")}
-                className={`tab flex-1 py-3 text-base font-medium ${
-                  activeTab === "withdraw" ? "active" : ""
-                }`}
-              >
-                Withdraw
-              </button>
-            </div>
+        <Tabs activeTab={activeTab} onTabChange={handleTabChange} />
 
             <div className="relative overflow-hidden min-h-[400px]">
               <div
@@ -519,17 +496,17 @@ const handleWithdrawPsbt = async (): Promise<void> => {
                   })`,
                 }}
               >
+                 {error && (
+        <div className="text-red-500 text-sm mb-2 text-center">{error}</div>
+      )}
                 <div className="w-1/2 shrink-0 px-4">
                   <MintPanel
-                    btcDeposit={btcDeposit}
-                    error={error}
-                    getBalanceResult={getBalanceResult}
                     mintAmount={Number(mintAmount)}
                     collateralRatio={collateralRatio}
                     liquidationPrice={liquidationPrice}
                     requiredCollateralBTC={requiredCollateralBTC}
-                    requiredCollateralSATs={requiredCollateralSATs}
-                    handleBtcDeposit={setBtcDeposit}
+                    btcPrice={btcPrice}
+                    feeRequiredToMint={FEE_REQUIRED_TO_MINT}
                   />
                 </div>
 
@@ -542,36 +519,26 @@ const handleWithdrawPsbt = async (): Promise<void> => {
                     allSelected={allSelected}
                     totalDebt={totalDebt}
                     totalCollateral={totalCollateral}
-                  
                   />
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={activeTab === "mint" ? handleMint : handleWithdraw}
-              disabled={loading}
-              className={`w-full mt-6 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-amber-500 hover:bg-amber-600"
-              } text-black font-bold py-4 rounded-lg text-lg`}
-            >
-              {loading
-                ? "Processing..."
-                : activeTab === "mint"
-                ? "Mint USDB"
-                : "Withdraw Selected"}
-            </button>
+            <Button
+              activeTab={activeTab}
+              loading={loading}
+              handleMint={handleMint}
+              handleWithdraw={handleWithdraw}
+            />
           </div>
         </div>
         {/* {modalOutputs && ( */}
-          <MintModal
-            show={showTransactionModal}
-            onClose={() => setShowTransactionModal(false)}
-            handlePsbt={handlePsbt}
-            // outputs={modalOutputs}
-          />
+        <MintModal
+          show={showTransactionModal}
+          onClose={() => setShowTransactionModal(false)}
+          handlePsbt={handlePsbt}
+          // outputs={modalOutputs}
+        />
         {/* )}/ */}
         <WithdrawModal
           show={showWithDrawModal}
