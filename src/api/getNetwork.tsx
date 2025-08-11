@@ -1,26 +1,56 @@
+import { useEffect, useState } from 'react';
 import Wallet from 'sats-connect';
-import type { RpcError, RpcResult } from 'sats-connect';
+import type { RpcResult, RpcError } from 'sats-connect';
+import { useWallet } from './connectWallet';
 
-type NetworkInfo = {
-  name: string;
+
+type NetworkSuccess = {
+  status: 'success';
+  bitcoin: string;
+  stacks: string;
 };
 
-export type GetNetworkResponse = {
-  bitcoin: NetworkInfo;
-  stacks: NetworkInfo;
+type NetworkError = {
+  status: 'error';
+  error: RpcError;
 };
 
-type WalletResponse<T> = 
-  | { status: 'success'; result: T }
-  | { status: 'error'; error: RpcError };
+type NetworkResponse = NetworkSuccess | NetworkError;
 
-export async function getNetwork(): Promise<WalletResponse<GetNetworkResponse>> {
-  const res: RpcResult<'wallet_getNetwork'> = await Wallet.request('wallet_getNetwork', undefined);
+export function useNetwork(): NetworkResponse | undefined {
+  const { wallet } = useWallet();
+  const [network, setNetwork] = useState<NetworkResponse>();
 
-  if (res.status === 'error') {
-    console.error('Failed to fetch network:', res.error);
-    return { status: 'error', error: res.error };
+  useEffect(() => {
+   if(wallet){
+
+    async function fetchNetwork() {
+      try {
+        const res: RpcResult<'wallet_getNetwork'> = await Wallet.request(
+          'wallet_getNetwork',
+          undefined
+        );
+
+        if (res.status === 'error') {
+          setNetwork({ status: 'error', error: res.error });
+        } else {
+          setNetwork({
+            status: 'success',
+            bitcoin: res.result.bitcoin.name,
+            stacks: res.result.stacks.name,
+          });
+        }
+      } catch (err) {
+          setNetwork({
+            status: 'error',
+            error: { code: -1, message: (err as Error).message },
+          });
+      }
+    }
+
+    fetchNetwork();
   }
+  }, [wallet]);
 
-  return { status: 'success', result: res.result };
+  return network;
 }

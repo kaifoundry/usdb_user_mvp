@@ -4,8 +4,7 @@ import BackgroundCanvas from "../components/backgroundCanvas";
 import { useBTCPrice } from "../Hooks/useBTCPrice";
 import NetworkBanner from "../components/networkBanner";
 import { useWallet } from "../api/connectWallet";
-import { getAddresses } from "../api/getAddresses";
-import { getBalance } from "../api/getBalance";
+import { useGetBalance } from "../api/getBalance";
 import { signPsbt } from "../api/signPsbt";
 import type { TabType } from "../types/tab";
 import {
@@ -14,7 +13,7 @@ import {
   COLLATERAL_RATIO,
 } from "../constants/appContsants";
 import MintPanel from "../components/MintPanel";
-import { getNetwork, type GetNetworkResponse } from "../api/getNetwork";
+import { useNetwork } from "../api/getNetwork";
 import WithdrawPanel from "../components/WithdrawPanel";
 import MintModal from "../Modal/mintModal";
 import type {
@@ -35,10 +34,14 @@ import type {
 } from "../interfaces/pages/liquidationInterface";
 import { Button } from "../components/button";
 import Tabs from "../components/tabs";
+import useBTCConverter from "../Hooks/useBTCConverter";
 
 export default function USDBCoin() {
   const btcPrice = useBTCPrice();
-  const { wallet } = useWallet();
+  const { satsToBtc } = useBTCConverter();
+  const { balance } = useGetBalance();
+  const { wallet, connectWallet } = useWallet();
+  const network = useNetwork();
   const [activeTab, setActiveTab] = useState<TabType>("mint");
   const [mintAmount, setMintAmount] = useState(MINT_AMOUNT.toFixed(2));
   const [collateralRatio, setCollateralRatio] = useState(COLLATERAL_RATIO);
@@ -46,10 +49,6 @@ export default function USDBCoin() {
   const [requiredCollateralBTC, setRequiredCollateralBTC] = useState("--");
   const [error, setError] = useState("");
   const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
-  const [paymentAddress, setPaymentAddress] = useState<string | null>(null);
-  const [networkResponse, setNetworkResponse] =
-    useState<GetNetworkResponse | null>(null);
-  const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const [vaults, setVaults] = useState<VaultTransaction[]>([]);
   const [allSelected, setAllSelected] = useState(false);
   const [modalOutputs, setModalOutputs] = useState<OutputData | null>(null);
@@ -62,51 +61,29 @@ export default function USDBCoin() {
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
+  useEffect(() => {
+    if (!btcPrice || btcPrice === 0) return;
+    const requiredCollateral =
+      Math.ceil(((MINT_AMOUNT * COLLATERAL_RATIO) / 100 / btcPrice) * 1e8) /
+      1e8;
+    setMintAmount(MINT_AMOUNT.toFixed(2));
+    setCollateralRatio(COLLATERAL_RATIO);
+    setLiquidationPrice(`$${Math.ceil((btcPrice * 3) / 4)}`);
+    setRequiredCollateralBTC(requiredCollateral.toFixed(8));
+  }, [btcPrice]);
 
   useEffect(() => {
-    if (wallet) {
-      (async () => {
-        const res = await getNetwork();
-        if (res.status === "success") setNetworkResponse(res.result);
+    if (balance?.total == null || requiredCollateralBTC === "--") return;
 
-        const response = await getAddresses();
-        if (response)
-          setPaymentAddress(response.paymentAddress?.address || null);
-      })();
-    }
-  }, [wallet]);
+    const balanceInSats = parseFloat(balance?.total);
+    if (isNaN(balanceInSats)) return;
 
-  useEffect(() => {
-    if (paymentAddress) {
-      (async () => {
-        const response = await getBalance();
-        setGetBalanceResult(response.paymentAddress?.total ?? null);
-      })();
-    }
-  }, [paymentAddress]);
+    const availableBalance = parseFloat(satsToBtc(balanceInSats));
+    const totalRequired =
+      parseFloat(requiredCollateralBTC) + FEE_REQUIRED_TO_MINT;
 
-useEffect(() => {
-  if (!btcPrice || btcPrice === 0) return;
-  const requiredCollateral = Math.ceil((MINT_AMOUNT * COLLATERAL_RATIO / 100 / btcPrice) * 1e8) / 1e8;
-  setMintAmount(MINT_AMOUNT.toFixed(2));
-  setCollateralRatio(COLLATERAL_RATIO);
- setLiquidationPrice(`$${Math.ceil((btcPrice * 3) / 4)}`);
-  setRequiredCollateralBTC(requiredCollateral.toFixed(8));
-}, [btcPrice]);
-
-
- useEffect(() => {
-  if (!getBalanceResult || requiredCollateralBTC === "--") return;
-
-  const balanceInSats = parseFloat(getBalanceResult);
-  if (isNaN(balanceInSats)) return;
-
-  const availableBalance = balanceInSats / 100_000_000;
-  const totalRequired = parseFloat(requiredCollateralBTC) + FEE_REQUIRED_TO_MINT;
-
-  setError(availableBalance < totalRequired ? "Insufficient Balance" : "");
-}, [getBalanceResult, requiredCollateralBTC]);
-
+    setError(availableBalance < totalRequired ? "Insufficient Balance" : "");
+  }, [balance?.total, requiredCollateralBTC]);
 
   const handleMint = async () => {
     const apiUrl = `${import.meta.env.VITE_API_URL}/mint/mint-btc-lock`;
@@ -208,19 +185,18 @@ useEffect(() => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    if (paymentAddress && activeTab === "withdraw") {
-      getVaultTransactions(paymentAddress);
+    if (wallet?.paymentAddress?.address && activeTab === "withdraw") {
+      fetchVaultTransactions(wallet?.paymentAddress?.address);
     }
-  }, [paymentAddress, activeTab]);
+  }, [wallet?.paymentAddress?.address, activeTab]);
 
-  const getVaultTransactions = async (
-    paymentAddress: string
+  const fetchVaultTransactions = async (
+    address: string
   ): Promise<VaultTransaction[]> => {
     const url = `${
       import.meta.env.VITE_API_URL
-    }/transaction/vault?payment_address=${paymentAddress}`;
+    }/transaction/vault?payment_address=${address}`;
 
     try {
       const response = await fetch(url, {
@@ -237,8 +213,9 @@ useEffect(() => {
       }
 
       const data: VaultTransaction[] = await response.json();
-      setVaults(data);
       console.log("✅ Vault transactions:", data);
+
+      setVaults(data);
       return data;
     } catch (error) {
       console.error("❌ Error fetching vault transactions:", error);
@@ -463,7 +440,6 @@ useEffect(() => {
     }
   };
 
-
   // async function handleSign() {
   //   if (!paymentAddress) return;
   //   const result = await signMessage({
@@ -480,12 +456,14 @@ useEffect(() => {
       <Header />
       <main className="flex-grow flex flex-col items-center justify-center p-4 pt-32 relative z-10">
         <NetworkBanner
-          networkName={networkResponse?.bitcoin?.name ?? "Testnet"}
+          networkName={
+            network?.status === "success" ? network.bitcoin : "Testnet"
+          }
         />
 
         <div className="w-full max-w-lg mx-auto">
           <div className="app-card rounded-2xl p-2 md:px-8 md:pb-6">
-        <Tabs activeTab={activeTab} onTabChange={handleTabChange} />
+            <Tabs activeTab={activeTab} onTabChange={handleTabChange} />
 
             <div className="relative overflow-hidden min-h-[400px]">
               <div
@@ -496,9 +474,6 @@ useEffect(() => {
                   })`,
                 }}
               >
-                 {error && (
-        <div className="text-red-500 text-sm mb-2 text-center">{error}</div>
-      )}
                 <div className="w-1/2 shrink-0 px-4">
                   <MintPanel
                     mintAmount={Number(mintAmount)}
@@ -507,6 +482,7 @@ useEffect(() => {
                     requiredCollateralBTC={requiredCollateralBTC}
                     btcPrice={btcPrice}
                     feeRequiredToMint={FEE_REQUIRED_TO_MINT}
+                    Error={error}
                   />
                 </div>
 
@@ -529,6 +505,9 @@ useEffect(() => {
               loading={loading}
               handleMint={handleMint}
               handleWithdraw={handleWithdraw}
+              connectWallet={connectWallet}
+              wallet={wallet}
+              Error={error}
             />
           </div>
         </div>

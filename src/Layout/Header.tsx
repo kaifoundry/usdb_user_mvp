@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import type { Theme } from "../types/theme";
 import logo from "/assets/logowhite.png";
-import { getBalance } from "../api/getBalance";
+import { useGetBalance } from "../api/getBalance";
 import useBTCConverter from "../Hooks/useBTCConverter";
 import { getRunesBalance } from "../api/getRunesBalance";
 import type { RuneBalance } from "../interfaces/api/getRunesBalanceInterface";
@@ -16,6 +16,7 @@ export default function Header() {
   const isAppPage = location.pathname === "/usdb";
   const [copied, setCopied] = useState(false);
   const { satsToBtc } = useBTCConverter();
+    const { balance } = useGetBalance();
   const [theme, setTheme] = useState<Theme>(
     localStorage.getItem("theme") === "light" ||
       localStorage.getItem("theme") === "dark"
@@ -24,10 +25,11 @@ export default function Header() {
       ? "light"
       : "dark"
   );
-  const [getBalanceResult, setGetBalanceResult] = useState<string | null>(null);
   const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<
     RuneBalance[] | null
   >(null);
+
+  console.log('balance',balance)
 
   // Theme handling
   useEffect(() => {
@@ -44,10 +46,8 @@ export default function Header() {
   useEffect(() => {
     if (wallet && wallet?.paymentAddress?.address) {
       (async () => {
-        const response = await getBalance();
         const response2 = await getRunesBalance();
         setGetRunesBalanceResult(response2);
-        setGetBalanceResult(response.paymentAddress?.total ?? null);
       })();
     }
   }, [wallet?.paymentAddress?.address]);
@@ -141,8 +141,8 @@ export default function Header() {
                   </span>
                 ))}
                 <span className="pr-3 py-3">
-                  {getBalanceResult !== null
-                    ? `${satsToBtc(Number(getBalanceResult))} BTC`
+                  {balance !== null
+                    ? `${satsToBtc(Number(balance?.total))} BTC`
                     : ""}
                 </span>
                 {wallet?.paymentAddress?.address?.toString?.() ? (

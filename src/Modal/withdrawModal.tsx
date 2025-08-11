@@ -1,18 +1,12 @@
-import { useState } from "react";
-import type { Theme } from "../types/theme";
-const WithdrawModal = ({ show, onClose, handleWithdrawPsbt}: WithdrawModalProps) => {
- const [theme, setTheme] = useState<Theme>(
-      localStorage.getItem("theme") === "light" ||
-        localStorage.getItem("theme") === "dark"
-        ? (localStorage.getItem("theme") as Theme)
-        : window.matchMedia("(prefers-color-scheme: light)").matches
-        ? "light"
-        : "dark"
-    );
+const WithdrawModal = ({
+  show,
+  onClose,
+  handleWithdrawPsbt,
+}: WithdrawModalProps) => {
   if (!show) return null;
 
   return (
-   <div className="fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 modal-background">
+    <div className="fixed inset-0 z-50 flex items-center justify-center transition-colors duration-300 modal-background">
       <div className="relative w-full max-w-xl mx-4 rounded-xl shadow-lg p-8 flex flex-col gap-6 modal-card">
         <button
           type="button"
@@ -35,29 +29,27 @@ const WithdrawModal = ({ show, onClose, handleWithdrawPsbt}: WithdrawModalProps)
             />
           </svg>
         </button>
-
         <h2 className="text-2xl font-semibold text-center text-muted">
           You're about to sign a transaction
         </h2>
-
-       <div className="text-muted text-base space-y-4">
-  <div className="grid grid-cols-[120px_1fr] gap-2">
-    <span className="font-bold">Burning:</span>
-    <span>1,000 USDB tokens will be burnt from your wallet</span>
-  </div>
-  <div className="grid grid-cols-[120px_1fr] gap-2">
-    <span className="font-bold">You Receive:</span>
-    <div>
-      <p>10,000 vault USDB back</p>
-    </div>
-  </div>
-</div>
-
-
+        <div className="text-muted text-base space-y-4">
+          <div className="grid grid-cols-[120px_1fr] gap-2">
+            <span className="font-bold">Burning:</span>
+            <span>1,000 USDB tokens will be burnt from your wallet</span>
+          </div>
+          <div className="grid grid-cols-[120px_1fr] gap-2">
+            <span className="font-bold">You Receive:</span>
+            <div>
+              <p>10,000 vault USDB back</p>
+            </div>
+          </div>
+        </div>
         <button
           className="w-full bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg shadow"
           onClick={handleWithdrawPsbt}
-        >Withdraw</button>
+        >
+          Withdraw
+        </button>
       </div>
     </div>
   );

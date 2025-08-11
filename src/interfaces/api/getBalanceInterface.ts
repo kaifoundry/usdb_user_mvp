@@ -4,7 +4,3 @@ export interface PaymentBalance {
   unconfirmed: string; 
   total: string;        
 }
-
-export interface GetBalanceResult {
-  paymentAddress?: PaymentBalance;
-}

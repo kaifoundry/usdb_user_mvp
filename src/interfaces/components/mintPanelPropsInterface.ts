@@ -5,4 +5,5 @@ export interface MintPanelProps {
   requiredCollateralBTC: string;
   btcPrice: number | null;
   feeRequiredToMint: number;
+  Error:string
 }
