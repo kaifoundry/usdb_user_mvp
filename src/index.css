@@ -18,7 +18,7 @@
   --secondary-btn-text: #ffffff;
   --secondary-btn-border: #374151;
   --tab-inactive-color: #4b5563;
-  --tab-active-color: #fbbf24;
+  --tab-active-color: #E4E4E4;
   --timeline-color: #374151;
   --vault-item-bg: #1f2937;
   --input-checked-bg: #6e6e6efa;
@@ -107,7 +107,9 @@ body {
   border: 1px solid var(--card-border-color);
   backdrop-filter: blur(10px);
 }
-
+.dashed-card {
+  backdrop-filter: blur(10px);
+}
 .app-input {
   /* background-color: var(--input-bg-color); */
   border: 1px solid var(--input-border-color);
@@ -130,10 +132,7 @@ body {
   border-bottom-color: var(--tab-active-color);
 }
 
-.vault-item {
-  /* background-color: var(--vault-item-bg); */
-  border: 1px solid var(--input-border-color);
-}
+
 
 /* .vault-checkbox {
   accent-color: #fbbf24;
@@ -157,12 +156,12 @@ body {
 }
 
 .vault-checkbox:hover {
-  border-color: var(--tab-active-color);
+  border-color: #E4E4E4;
 }
 
 .vault-checkbox:checked {
-  background-color: var(--tab-active-color);
-  border-color: var(--tab-active-color);
+  background-color: #E4E4E4;
+  border-color: #E4E4E4;
 }
 
 .vault-checkbox:checked::before {
@@ -172,8 +171,8 @@ body {
   left: 50%;
   width: 12px;
   height: 6px;
-  border-left: 2px solid var(--secondary-btn-text);
-  border-bottom: 2px solid var(--secondary-btn-text);
+  border-left: 2px solid #242424;
+  border-bottom: 2px solid #242424;
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 

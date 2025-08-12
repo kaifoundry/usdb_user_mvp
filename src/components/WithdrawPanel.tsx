@@ -75,7 +75,7 @@ export default function WithdrawPanel({
               const confirmedAt = vault?.confirmed_at
                 ? useTimeAgo(vault?.confirmed_at)
                 : "Not confirmed yet..";
-              const txId = vault?.tx_id ?? "7345e...9008";
+              const txId = vault?.tx_id ?? "No transanction";
               const usdbAmount = vault?.usdb_amount ?? 0;
               const collateralRequired = vault?.collateral_required ?? 0.00008;
               const collateralRatio = vault?.collateral_ratio
@@ -126,19 +126,27 @@ export default function WithdrawPanel({
 
               const borderStyle =
                 vaultStatus === "in_progress" || vaultStatus === "pending"
-                  ? "border-2 border-dashed border-[#5E582F]"
+                  ? "border-2 border-dashed border-[#3A3A3A]"
                   : isSelected
-                  ? "border-green-500"
+                  ? theme === "light"
+                    ? "border-[#D6D6D6] border-2"
+                    : "border-[#3A3A3A] border-2"
                   : theme === "light"
-                  ? "border-gray-300"
-                  : "border-gray-700";
+                  ? "border-[#D6D6D6] border-2"
+                  : "border-[#3A3A3A] border-2";
+
+              const bgStyle = isSelected
+                ? theme === "light"
+                  ? "bg-[#F0F0F0]"
+                  : "bg-[#242424]"
+                : theme === "light"
+                ? "bg-[rgba(255,255,255,0.7)]"
+                : "bg-[rgba(23,23,23,0.7)]";
 
               return (
                 <div
                   key={vaultId}
-                  className={`vault-item p-4 rounded-lg app-card ${borderStyle} ${
-                    theme === "light" ? "bg-white" : "bg-gray-800"
-                  }`}
+                  className={` p-4 rounded-lg ${borderStyle} ${bgStyle}`}
                 >
                   {/* Top bar */}
                   <div className="flex items-center justify-between mb-2">
