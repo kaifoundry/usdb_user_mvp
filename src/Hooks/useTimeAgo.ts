@@ -32,7 +32,7 @@ export function useTimeAgo(dateInput?: string | number | Date): string {
 
     update();
 
-    const interval = setInterval(update, 60 * 1000); // Update every minute
+    const interval = setInterval(update, 60 * 1000); 
     return () => clearInterval(interval);
   }, [dateInput]);
 

@@ -2,14 +2,18 @@ export interface MintData {
   data: MintApiResponse;
   paymentAddress: string;
 }
- export type MintApiResponse = {
-  message: string; 
-  finalPsbt: {
+
+export type MintApiResponse = {
+  message: string;
+  psbt: {
     modifiedPsbt: string;
-    selectedInputs: any[];
-  userVisibleOutputs?: Array<Record<string, number>>;
+    totalInputs: number;
+    userVisibleOutputs?: Array<Record<string, number>>;
   };
-  vault_address: string;
+  vaultAddress: string;
+  collateralRequired: number;
+  btcPrice: number;
+  priceTimestamp: number;
 };
 
 export type OutputData = Array<{

@@ -16,8 +16,9 @@ const fetchBTCPrice = async (): Promise<number | null> => {
   }
 };
 
-export const useBTCPrice = (): number | null => {
-  const [price, setPrice] = useState<number | null>(null);
+export const useBTCPrice = (): { btcPrice: number | null; lastUpdated: number | null } => {
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null); // Unix timestamp
 
   useEffect(() => {
     let isMounted = true;
@@ -25,12 +26,13 @@ export const useBTCPrice = (): number | null => {
     const updatePrice = async () => {
       const newPrice = await fetchBTCPrice();
       if (isMounted && newPrice !== null) {
-        setPrice(newPrice);
+        setBtcPrice(newPrice);
+        setLastUpdated(Math.floor(Date.now() / 1000)); // Unix timestamp in seconds
       }
     };
 
-    updatePrice(); 
-    const interval = setInterval(updatePrice, 300_000);
+    updatePrice();
+    const interval = setInterval(updatePrice, 300_000); // every 5 minutes
 
     return () => {
       isMounted = false;
@@ -38,5 +40,5 @@ export const useBTCPrice = (): number | null => {
     };
   }, []);
 
-  return price;
+  return { btcPrice, lastUpdated };
 };

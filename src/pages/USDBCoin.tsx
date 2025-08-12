@@ -35,9 +35,13 @@ import type {
 import { Button } from "../components/button";
 import Tabs from "../components/tabs";
 import useBTCConverter from "../Hooks/useBTCConverter";
+import {
+  AuctionHistoryVault,
+  type HistoricalVault,
+} from "../components/auctionHistory";
 
 export default function USDBCoin() {
-  const btcPrice = useBTCPrice();
+  const { btcPrice, lastUpdated } = useBTCPrice();
   const { satsToBtc } = useBTCConverter();
   const { balance } = useGetBalance();
   const { wallet, connectWallet } = useWallet();
@@ -87,40 +91,60 @@ export default function USDBCoin() {
 
   const handleMint = async () => {
     const apiUrl = `${import.meta.env.VITE_API_URL}/mint/mint-btc-lock`;
-    const destination = wallet?.ordinalsAddress?.address;
-    const btcAddress = wallet?.paymentAddress?.address;
+    const ordinalAddress = wallet?.ordinalsAddress?.address;
+    const paymentAddress = wallet?.paymentAddress?.address;
     const ordinalPublicKey = wallet?.ordinalsAddress?.publicKey;
     const paymentAddressPublicKey = wallet?.paymentAddress?.publicKey;
+    const collateralRequired = Number(requiredCollateralBTC);
+    const priceTimestamp = lastUpdated;
 
-    console.log();
-    if (!apiUrl || !destination || !btcAddress) {
+    if (!apiUrl || !ordinalAddress || !paymentAddress) {
       console.error("❌ Missing API URL or wallet addresses");
       return;
     }
 
     const payload = {
-      destination,
-      btcAddress,
+      ordinalAddress,
+      paymentAddress,
       ordinalPublicKey,
       paymentAddressPublicKey,
+      collateralRequired,
+      btcPrice,
+      priceTimestamp,
     };
+
+    console.log("payload", payload);
     setLoading(true);
+
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
         console.error("❌ Mint API request failed:", response.statusText);
         return;
       }
 
-      const data: MintApiResponse = await response.json();
+      const apiResponse = await response.json();
+
+      // Map API response to our MintApiResponse type
+      const data: MintApiResponse = {
+        message: apiResponse.message,
+        psbt: apiResponse.data.psbt,
+        vaultAddress: apiResponse.data.vaultAddress,
+        collateralRequired: apiResponse.data.collateralRequired,
+        btcPrice: apiResponse.data.btcPrice,
+        priceTimestamp: apiResponse.data.priceTimestamp,
+      };
+
       console.log("data mint:", data);
-      setMintData({ data, paymentAddress: btcAddress });
+      setMintData({ data, paymentAddress: paymentAddress });
+
       const outputsArray =
-        data?.finalPsbt?.userVisibleOutputs?.map((outputObj) => {
+        data?.psbt?.userVisibleOutputs?.map((outputObj) => {
           const address = Object.keys(outputObj)[0];
           const amount = outputObj[address];
           return {
@@ -139,52 +163,59 @@ export default function USDBCoin() {
   };
 
   const handlePsbt = async () => {
-    if (!mintData) {
-      console.warn("⚠️ No mint data available.");
-      return;
-    }
+  if (!mintData) {
+    console.warn("⚠️ No mint data available.");
+    return;
+  }
 
-    const { data, paymentAddress } = mintData;
-    const modifiedPsbt = data.finalPsbt?.modifiedPsbt;
-    const selectedInputs = data.finalPsbt?.selectedInputs;
-    const vaultAddress = data.vault_address;
+  const { data, paymentAddress } = mintData;
+  const modifiedPsbt = data?.psbt?.modifiedPsbt;
+  const totalInputs = data?.psbt?.totalInputs;
+  const vaultAddress = data?.vaultAddress;
+  const collateralRequired = data?.collateralRequired;
+  const btcPrice = data?.btcPrice;
+  const priceTimestamp = data?.priceTimestamp;
 
-    if (!modifiedPsbt || !selectedInputs?.length) {
-      console.error("❌ Invalid PSBT or inputs.");
-      return;
-    }
+  if (!modifiedPsbt || !totalInputs) {
+    console.error("❌ Invalid PSBT or inputs.");
+    return;
+  }
 
-    const inputIndexes = selectedInputs.map((_, idx) => idx);
-    const signInputs: Record<string, number[]> = {
-      [paymentAddress]: inputIndexes,
-    };
-
-    setLoading(true);
-
-    try {
-      const signed = await signPsbt({
-        psbtBase64: modifiedPsbt,
-        signInputs,
-        broadcast: true,
-      });
-
-      if (signed?.txid) {
-        const confirmation = await checkTransactionConfirmation(
-          signed.txid,
-          paymentAddress,
-          vaultAddress
-        );
-
-        // optionally handle confirmation result
-        console.log("Confirmation status:", confirmation);
-      }
-    } catch (err) {
-      console.error("❌ Signing or confirmation failed:", err);
-    } finally {
-      setShowTransactionModal(false);
-      setLoading(false);
-    }
+  const inputIndexes = Array.from({ length: totalInputs }, (_, idx) => idx);
+  const signInputs: Record<string, number[]> = {
+    [paymentAddress]: inputIndexes,
   };
+
+  setLoading(true);
+
+  try {
+    const mintTimestamp = Math.floor(Date.now() / 1000);
+    const signed = await signPsbt({
+      psbtBase64: modifiedPsbt,
+      signInputs,
+      broadcast: true,
+    });
+
+    if (signed?.txid) {
+      const confirmation = await checkTransactionConfirmation(
+        signed.txid,
+        paymentAddress,
+        vaultAddress,
+        collateralRequired,
+        btcPrice,
+        priceTimestamp,
+        mintTimestamp 
+      );
+      console.log("Confirmation status:", confirmation);
+    }
+  } catch (err) {
+    console.error("❌ Signing or confirmation failed:", err);
+  } finally {
+    setShowTransactionModal(false);
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     if (wallet?.paymentAddress?.address && activeTab === "withdraw") {
       fetchVaultTransactions(wallet?.paymentAddress?.address);
@@ -226,14 +257,22 @@ export default function USDBCoin() {
   const checkTransactionConfirmation = async (
     txid: string,
     paymentAddress: string,
-    vaultAddress: string
+    vaultAddress: string,
+    collateralRequired: number,
+    btcPrice: number,
+    priceTimestamp: number,
+    mintTimestamp: number
   ): Promise<ConfirmationResponse> => {
     const requestBody: ConfirmationRequest = {
       txid,
       paymentAddress,
       vaultAddress,
+      collateralRequired,
+      btcPrice,
+      priceTimestamp,
+      mintTimestamp,
     };
-
+console.log('requestBody',requestBody)
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/transaction/check/confirmation`,
@@ -253,6 +292,10 @@ export default function USDBCoin() {
       }
 
       const data: ConfirmationResponse = await response.json();
+       if (data?.message === "Transaction found but not yet confirmed") {
+await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
+
+    }
       console.log("✅ Transaction confirmation response:", data);
       return data;
     } catch (error) {
@@ -261,32 +304,32 @@ export default function USDBCoin() {
     }
   };
 
-  const processedVaults = vaults.flatMap((vault) => {
-    if (vault.usdb_amount > 10000) {
-      const splits: VaultTransaction[] = [];
-      let remaining = vault.usdb_amount;
-      let index = 1;
-      while (remaining > 0) {
-        const chunk = remaining >= 10000 ? 10000 : remaining;
-        splits.push({
-          ...vault,
-          id: Number(`${vault.id}${index}`), // make new unique ID
-          usdb_amount: chunk,
-        });
-        remaining -= chunk;
-        index++;
-      }
-      return splits;
-    } else {
-      return [vault];
-    }
-  });
+ const processedVaults = vaults.flatMap((vault) => {
+  const vaultWithLocked = {
+    ...vault,
+    btc_locked: vault.collateral_required ?? 0,
+  };
 
-  // const toggleVault = (id: string) => {
-  //   setSelectedVaults((prev) =>
-  //     prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-  //   );
-  // };
+  if (vaultWithLocked.usdb_amount > 10) {
+    const splits: VaultTransaction[] = [];
+    let remaining = vaultWithLocked.usdb_amount;
+    let index = 1;
+    while (remaining > 0) {
+      const chunk = remaining >= 10 ? 10 : remaining;
+      splits.push({
+        ...vaultWithLocked,
+        id: Number(`${vaultWithLocked.id}${index}`),
+        usdb_amount: chunk,
+      });
+      remaining -= chunk;
+      index++;
+    }
+    return splits;
+  } else {
+    return [vaultWithLocked];
+  }
+});
+
   const toggleVault = (id: string) => {
     setSelectedVaults((prev) => (prev.includes(id) ? [] : [id]));
   };
@@ -449,7 +492,103 @@ export default function USDBCoin() {
   //   });
   //   console.log(result);
   // }
+  const mockVaults = [
+    {
+      id: "1",
+      vaultId: "#1",
+      liquidationStarted: "Aug 7, 11:12am",
+      timeLeft: "11 mint 14 sec left",
+      txId: "7345e1234567890abcdef1234567890abcdef9008",
+      vaultCollateral: {
+        amount: "0.015",
+        currency: "BTC",
+      },
+      lot: {
+        amount: "10",
+        currency: "USDB",
+      },
+      currentClaimPrice: {
+        amount: "2300",
+        unit: "sats",
+        currency: "1 USDB",
+      },
+    },
+    {
+      id: "2",
+      vaultId: "#1",
+      liquidationStarted: "Aug 7, 11:12am",
+      timeLeft: "11 mint 14 sec left",
+      txId: "7345e1234567890abcdef1234567890abcdef9008",
+      vaultCollateral: {
+        amount: "0.015",
+        currency: "BTC",
+      },
+      lot: {
+        amount: "10",
+        currency: "USDB",
+      },
+      currentClaimPrice: {
+        amount: "2300",
+        unit: "sats",
+        currency: "1 USDB",
+      },
+    },
+  ];
+  const mockHistoricalVaults: HistoricalVault[] = [
+    {
+      id: "1",
+      vaultId: "#006",
+      date: "Aug 6",
+      btcCollateral: "0.001 BTC",
+      finalBid: "11.200",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+    {
+      id: "2",
+      vaultId: "#897",
+      date: "Aug 12",
+      btcCollateral: "0.78 BTC",
+      finalBid: "12.500",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+    {
+      id: "3",
+      vaultId: "#897",
+      date: "Aug 12",
+      btcCollateral: "0.78 BTC",
+      finalBid: "10.400",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+    {
+      id: "4",
+      vaultId: "#006",
+      date: "Aug 6",
+      btcCollateral: "0.001 BTC",
+      finalBid: "11.200",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+    {
+      id: "5",
+      vaultId: "#897",
+      date: "Aug 12",
+      btcCollateral: "0.78 BTC",
+      finalBid: "12.500",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+    {
+      id: "6",
+      vaultId: "#897",
+      date: "Aug 12",
+      btcCollateral: "0.78 BTC",
+      finalBid: "10.400",
+      walletAddress: "014h1234567890abcdef1234567890abcdef98hju",
+    },
+  ];
 
+  const handleClaim = (vaultId: string) => {
+    console.log(`Claiming vault ${vaultId}`);
+    // Add your claim logic here
+  };
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundCanvas />
@@ -484,6 +623,8 @@ export default function USDBCoin() {
                     feeRequiredToMint={FEE_REQUIRED_TO_MINT}
                     Error={error}
                   />
+                  {/* <AuctionVaultList vaults={mockVaults} onClaim={handleClaim} /> */}
+                  {/* <AuctionHistoryVault  vaults={mockHistoricalVaults}/> */}
                 </div>
 
                 <div className="w-1/2 shrink-0 px-4">
