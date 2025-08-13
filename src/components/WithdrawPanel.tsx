@@ -38,6 +38,7 @@ export default function WithdrawPanel({
   return (
     <>
       {/* Header */}
+      {vaults.some(v => v.status === "confirmed") && (
       <div className="flex items-center justify-between mt-6">
         <label
           className={`text-sm ${
@@ -62,6 +63,7 @@ export default function WithdrawPanel({
           />
         </div>
       </div>
+      )}
 
       {/* Vault list */}
       <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
@@ -151,14 +153,16 @@ export default function WithdrawPanel({
                   {/* Top bar */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center justify-between">
-                      <div className="pt-1 mr-3">
-                        <input
-                          type="checkbox"
-                          className="vault-checkbox w-4 h-4"
-                          checked={isSelected}
-                          onChange={() => toggleVault(vaultId)}
-                        />
-                      </div>
+                      {vaultStatus === "confirmed" && (
+                        <div className="pt-1 mr-3">
+                          <input
+                            type="checkbox"
+                            className="vault-checkbox w-4 h-4"
+                            checked={isSelected}
+                            onChange={() => toggleVault(vaultId)}
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-xs px-2 py-0.5 rounded-md ${statusColor}`}

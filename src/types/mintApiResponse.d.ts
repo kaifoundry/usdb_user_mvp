@@ -15,8 +15,3 @@ export type MintApiResponse = {
   btcPrice: number;
   priceTimestamp: number;
 };
-
-export type OutputData = Array<{
-  address: string;
-  amount: string;
-}>;

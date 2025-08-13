@@ -5,6 +5,7 @@ import type { RawRuneBalance, RuneBalance } from "../interfaces/api/getRunesBala
 
 export async function getRunesBalance(): Promise<RuneBalance[]> {
   let response = await request("runes_getBalance", null);
+  console.log('response',response)
   if (response.status === "success") {
     return formatRawBalances(response.result.balances as RawRuneBalance[]);
   }

@@ -16,7 +16,7 @@ export default function Header() {
   const isAppPage = location.pathname === "/usdb";
   const [copied, setCopied] = useState(false);
   const { satsToBtc } = useBTCConverter();
-    const { balance } = useGetBalance();
+  const { balance } = useGetBalance();
   const [theme, setTheme] = useState<Theme>(
     localStorage.getItem("theme") === "light" ||
       localStorage.getItem("theme") === "dark"
@@ -29,7 +29,7 @@ export default function Header() {
     RuneBalance[] | null
   >(null);
 
-  console.log('balance',balance)
+  console.log("balance", balance);
 
   // Theme handling
   useEffect(() => {
@@ -55,9 +55,7 @@ export default function Header() {
   return (
     <>
       <Toaster position="top-center" /> {/* <-- add this */}
-    <header
-  className={"header fixed w-full backdrop-blur-lg z-30"}
->
+      <header className={"header fixed w-full backdrop-blur-lg z-30"}>
         <div className="container mx-auto px-6 py-4 flex justify-between items-center ">
           <div className="flex items-center">
             <div className="flex items-center gap-3 px-4 py-2 rounded-[34px] border border-white/10 backdrop-blur-sm bg-[linear-gradient(108.21deg,rgba(184,184,184,0.24)_0%,rgba(184,184,184,0.08)_100%)]">
@@ -135,11 +133,14 @@ export default function Header() {
           ) : (
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex space-x-4 text-sm">
-                {getRunesBalanceResult?.map((item ,index) => (
-                  <span className="px-3 py-3" key={index}>
-                    {`${item?.amount} ${item?.runeName}`}
-                  </span>
-                ))}
+                {getRunesBalanceResult
+                  ?.filter((item) => item?.runeName === "USDBZ•STABLECOIN")
+                  .map((item, index) => (
+                    <span className="px-3 py-3" key={index}>
+                      {`${item?.amount} ${item?.runeName}`}
+                    </span>
+                  ))}
+
                 <span className="pr-3 py-3">
                   {balance !== null
                     ? `${satsToBtc(Number(balance?.total))} BTC`

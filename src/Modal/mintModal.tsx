@@ -1,16 +1,15 @@
-type OutputData = Array<{
-  address: string;
-  amount: string;
-}>;
+import { FEE_REQUIRED_TO_MINT, MINT_AMOUNT } from "../constants/appContsants";
+import type { MintData } from "../types/mintApiResponse";
 
 type MintModalProps = {
   show: boolean;
   onClose: () => void;
-  outputs?: OutputData;
+  outputs?: MintData | null;
   handlePsbt: () => void;
 };
 
 const MintModal = ({ show, onClose, outputs, handlePsbt }: MintModalProps) => {
+  console.log('outputs',outputs)
   if (!show) return null;
 
   return (
@@ -45,25 +44,25 @@ const MintModal = ({ show, onClose, outputs, handlePsbt }: MintModalProps) => {
        <div className="text-muted text-base space-y-4">
   <div className="grid grid-cols-[120px_1fr] gap-2">
     <span className="font-bold">Fee:</span>
-    <span>5,000 sats will be paid as protocol fee</span>
+    <span>{FEE_REQUIRED_TO_MINT} BTC will be sent to protocol from your wallet as fee</span>
   </div>
   <div className="grid grid-cols-[120px_1fr] gap-2">
     <span className="font-bold">Vault Lock:</span>
     <div>
-      <p>10,000 sats will be locked into a secure vault</p>
+      <p>{outputs?.data?.collateralRequired} BTC will be locked into a secure vault with address</p>
       <a
-        href="https://www.notion.so/testnet4-usdb-23eb2f91978f803f9279ffa00431fa64?pvs=21"
-        target="_blank"
-        rel="noopener noreferrer"
-        className=" underline hover:text-blue-500"
-      >
-        Learn more
-      </a>
+  href={`https://mempool.space/testnet4/address/${outputs?.data?.vaultAddress}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="underline hover:text-blue-500"
+>
+  Learn More
+</a>
     </div>
   </div>
   <div className="grid grid-cols-[120px_1fr] gap-2">
     <span className="font-bold">You Receive:</span>
-    <span>1,000 USDB tokens</span>
+    <span>{MINT_AMOUNT} USDBZ tokens</span>
   </div>
 </div>
 

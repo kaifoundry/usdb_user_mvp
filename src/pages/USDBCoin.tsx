@@ -19,7 +19,6 @@ import MintModal from "../Modal/mintModal";
 import type {
   MintApiResponse,
   MintData,
-  OutputData,
 } from "../types/mintApiResponse";
 import WithdrawModal from "../Modal/withdrawModal";
 import type {
@@ -55,7 +54,6 @@ export default function USDBCoin() {
   const [selectedVaults, setSelectedVaults] = useState<string[]>([]);
   const [vaults, setVaults] = useState<VaultTransaction[]>([]);
   const [allSelected, setAllSelected] = useState(false);
-  const [modalOutputs, setModalOutputs] = useState<OutputData | null>(null);
   const [mintData, setMintData] = useState<MintData | null>(null);
   const [liquidationData, setLiquidationData] =
     useState<LiquidationState | null>(null);
@@ -141,19 +139,7 @@ export default function USDBCoin() {
       };
 
       console.log("data mint:", data);
-      setMintData({ data, paymentAddress: paymentAddress });
-
-      const outputsArray =
-        data?.psbt?.userVisibleOutputs?.map((outputObj) => {
-          const address = Object.keys(outputObj)[0];
-          const amount = outputObj[address];
-          return {
-            address,
-            amount: `${amount} BTC`,
-          };
-        }) || [];
-
-      setModalOutputs(outputsArray);
+      setMintData({ data, paymentAddress: paymentAddress })
       setShowTransactionModal(true);
     } catch (err) {
       console.error("❌ Mint request error:", err);
@@ -657,7 +643,7 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
           show={showTransactionModal}
           onClose={() => setShowTransactionModal(false)}
           handlePsbt={handlePsbt}
-          // outputs={modalOutputs}
+          outputs={mintData}
         />
         {/* )}/ */}
         <WithdrawModal
