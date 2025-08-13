@@ -9,6 +9,7 @@ export interface VaultTransaction {
   collateral_required: number;
   collateral_ratio: number;
   btc_price: string;
+  btc_locked: number;
   usdb_amount: number;
   created_at: string;
   confirmed_at: string | null;

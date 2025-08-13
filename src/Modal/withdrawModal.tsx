@@ -1,8 +1,12 @@
+import type { WithdrawModalProps } from "../types/withdrawModal";
+
 const WithdrawModal = ({
   show,
   onClose,
   handleWithdrawPsbt,
+  vaults
 }: WithdrawModalProps) => {
+  console.log('mintData', vaults);
   if (!show) return null;
 
   return (
@@ -35,12 +39,12 @@ const WithdrawModal = ({
         <div className="text-muted text-base space-y-4">
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <span className="font-bold">Burning:</span>
-            <span>1,000 USDB tokens will be burnt from your wallet</span>
+            <span>{vaults[0]?.usdb_amount} USDBZ tokens will be burnt from your wallet</span>
           </div>
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <span className="font-bold">You Receive:</span>
             <div>
-              <p>10,000 vault USDB back</p>
+              <p>{vaults[0]?.btc_locked} vault BTC back to your wallet </p>
             </div>
           </div>
         </div>

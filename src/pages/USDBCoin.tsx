@@ -16,10 +16,7 @@ import MintPanel from "../components/MintPanel";
 import { useNetwork } from "../api/getNetwork";
 import WithdrawPanel from "../components/WithdrawPanel";
 import MintModal from "../Modal/mintModal";
-import type {
-  MintApiResponse,
-  MintData,
-} from "../types/mintApiResponse";
+import type { MintApiResponse, MintData } from "../types/mintApiResponse";
 import WithdrawModal from "../Modal/withdrawModal";
 import type {
   ConfirmationRequest,
@@ -38,6 +35,7 @@ import {
   AuctionHistoryVault,
   type HistoricalVault,
 } from "../components/auctionHistory";
+import { TransactionModal } from "../Modal/transactionSuccessModal";
 
 export default function USDBCoin() {
   const { btcPrice, lastUpdated } = useBTCPrice();
@@ -60,6 +58,7 @@ export default function USDBCoin() {
   const [loading, setLoading] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithDrawModal, setShowWithDrawModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
@@ -139,7 +138,7 @@ export default function USDBCoin() {
       };
 
       console.log("data mint:", data);
-      setMintData({ data, paymentAddress: paymentAddress })
+      setMintData({ data, paymentAddress: paymentAddress });
       setShowTransactionModal(true);
     } catch (err) {
       console.error("❌ Mint request error:", err);
@@ -149,58 +148,58 @@ export default function USDBCoin() {
   };
 
   const handlePsbt = async () => {
-  if (!mintData) {
-    console.warn("⚠️ No mint data available.");
-    return;
-  }
-
-  const { data, paymentAddress } = mintData;
-  const modifiedPsbt = data?.psbt?.modifiedPsbt;
-  const totalInputs = data?.psbt?.totalInputs;
-  const vaultAddress = data?.vaultAddress;
-  const collateralRequired = data?.collateralRequired;
-  const btcPrice = data?.btcPrice;
-  const priceTimestamp = data?.priceTimestamp;
-
-  if (!modifiedPsbt || !totalInputs) {
-    console.error("❌ Invalid PSBT or inputs.");
-    return;
-  }
-
-  const inputIndexes = Array.from({ length: totalInputs }, (_, idx) => idx);
-  const signInputs: Record<string, number[]> = {
-    [paymentAddress]: inputIndexes,
-  };
-
-  setLoading(true);
-
-  try {
-    const mintTimestamp = Math.floor(Date.now() / 1000);
-    const signed = await signPsbt({
-      psbtBase64: modifiedPsbt,
-      signInputs,
-      broadcast: true,
-    });
-
-    if (signed?.txid) {
-      const confirmation = await checkTransactionConfirmation(
-        signed.txid,
-        paymentAddress,
-        vaultAddress,
-        collateralRequired,
-        btcPrice,
-        priceTimestamp,
-        mintTimestamp 
-      );
-      console.log("Confirmation status:", confirmation);
+    if (!mintData) {
+      console.warn("⚠️ No mint data available.");
+      return;
     }
-  } catch (err) {
-    console.error("❌ Signing or confirmation failed:", err);
-  } finally {
-    setShowTransactionModal(false);
-    setLoading(false);
-  }
-};
+
+    const { data, paymentAddress } = mintData;
+    const modifiedPsbt = data?.psbt?.modifiedPsbt;
+    const totalInputs = data?.psbt?.totalInputs;
+    const vaultAddress = data?.vaultAddress;
+    const collateralRequired = data?.collateralRequired;
+    const btcPrice = data?.btcPrice;
+    const priceTimestamp = data?.priceTimestamp;
+
+    if (!modifiedPsbt || !totalInputs) {
+      console.error("❌ Invalid PSBT or inputs.");
+      return;
+    }
+
+    const inputIndexes = Array.from({ length: totalInputs }, (_, idx) => idx);
+    const signInputs: Record<string, number[]> = {
+      [paymentAddress]: inputIndexes,
+    };
+
+    setLoading(true);
+
+    try {
+      const mintTimestamp = Math.floor(Date.now() / 1000);
+      const signed = await signPsbt({
+        psbtBase64: modifiedPsbt,
+        signInputs,
+        broadcast: true,
+      });
+
+      if (signed?.txid) {
+        const confirmation = await checkTransactionConfirmation(
+          signed.txid,
+          paymentAddress,
+          vaultAddress,
+          collateralRequired,
+          btcPrice,
+          priceTimestamp,
+          mintTimestamp
+        );
+        console.log("Confirmation status:", confirmation);
+      }
+    } catch (err) {
+      console.error("❌ Signing or confirmation failed:", err);
+    } finally {
+      setShowTransactionModal(false);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (wallet?.paymentAddress?.address && activeTab === "withdraw") {
@@ -258,7 +257,7 @@ export default function USDBCoin() {
       priceTimestamp,
       mintTimestamp,
     };
-console.log('requestBody',requestBody)
+    console.log("requestBody", requestBody);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/transaction/check/confirmation`,
@@ -278,10 +277,9 @@ console.log('requestBody',requestBody)
       }
 
       const data: ConfirmationResponse = await response.json();
-       if (data?.message === "Transaction found but not yet confirmed") {
-await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
-
-    }
+      if (data?.message === "Transaction found but not yet confirmed") {
+        await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
+      }
       console.log("✅ Transaction confirmation response:", data);
       return data;
     } catch (error) {
@@ -290,31 +288,31 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
     }
   };
 
- const processedVaults = vaults.flatMap((vault) => {
-  const vaultWithLocked = {
-    ...vault,
-    btc_locked: vault.collateral_required ?? 0,
-  };
+  const processedVaults = vaults.flatMap((vault) => {
+    const vaultWithLocked = {
+      ...vault,
+      btc_locked: vault.collateral_required ?? 0,
+    };
 
-  if (vaultWithLocked.usdb_amount > 10) {
-    const splits: VaultTransaction[] = [];
-    let remaining = vaultWithLocked.usdb_amount;
-    let index = 1;
-    while (remaining > 0) {
-      const chunk = remaining >= 10 ? 10 : remaining;
-      splits.push({
-        ...vaultWithLocked,
-        id: Number(`${vaultWithLocked.id}${index}`),
-        usdb_amount: chunk,
-      });
-      remaining -= chunk;
-      index++;
+    if (vaultWithLocked.usdb_amount > 10) {
+      const splits: VaultTransaction[] = [];
+      let remaining = vaultWithLocked.usdb_amount;
+      let index = 1;
+      while (remaining > 0) {
+        const chunk = remaining >= 10 ? 10 : remaining;
+        splits.push({
+          ...vaultWithLocked,
+          id: Number(`${vaultWithLocked.id}${index}`),
+          usdb_amount: chunk,
+        });
+        remaining -= chunk;
+        index++;
+      }
+      return splits;
+    } else {
+      return [vaultWithLocked];
     }
-    return splits;
-  } else {
-    return [vaultWithLocked];
-  }
-});
+  });
 
   const toggleVault = (id: string) => {
     setSelectedVaults((prev) => (prev.includes(id) ? [] : [id]));
@@ -343,10 +341,13 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
     .filter((v) => selectedVaults.includes(String(v.id)))
     .reduce((sum, v) => sum + Number(v.usdb_amount ?? 0), 0);
 
-  const totalCollateral =
-    processedVaults
-      .filter((v) => selectedVaults.includes(String(v.id)))
-      .reduce((sum) => sum + 5000, 0) / 100_000_000;
+  const totalCollateral = processedVaults
+    .filter((v) => selectedVaults.includes(String(v.id)))
+    .reduce((sum, v) => sum + Number(v.collateral_required ?? 0), 0);
+
+  const selectedVaultData = processedVaults.filter((v) =>
+    selectedVaults.includes(String(v.id))
+  );
 
   const handleWithdraw = async (): Promise<void> => {
     const selectedVaultTxIds = processedVaults
@@ -359,7 +360,7 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
       paymentAddress: wallet?.paymentAddress?.address ?? "",
       ordinalsAddress: wallet?.ordinalsAddress?.address ?? "",
     };
-
+    console.log("payload", payload);
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/liquidation/liquidate`,
@@ -383,6 +384,7 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
           data: data.data,
           paymentAddress: payload.paymentAddress,
           ordinalsAddress: payload.ordinalsAddress,
+          txid:data?.txid
         };
 
         setLiquidationData(liquidationState);
@@ -405,8 +407,11 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
       data: liquidationDetails,
       paymentAddress,
       ordinalsAddress,
+      txid
     } = liquidationData;
+    console.log("liquidationDetails", txid);
     const psbtBase64 = liquidationDetails?.psbt;
+    const mintTxid = txid;
 
     if (!psbtBase64) {
       console.error("❌ Missing PSBT data.");
@@ -422,46 +427,45 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
 
     try {
       const signInputs: Record<string, number[]> = {
-        [ordinalsAddress]: [0],
         [paymentAddress]: [1],
+        [ordinalsAddress]: [0],
       };
 
       console.log("psbtBase64", psbtBase64);
       console.log("signInputs", signInputs);
+
       const signed = await signPsbt({
         psbtBase64,
         signInputs,
-        broadcast: true,
+        broadcast: false,
       });
 
       console.log("🔄 Signing result:", signed);
 
-      if (!signed || !signed.txid) {
-        console.warn("⚠️ Transaction was not signed or broadcasted.");
+      if (!signed || !signed.psbt) {
+        console.warn("⚠️ No signed PSBT returned.");
         return;
       }
-
-      console.log("✅ Signed and broadcasted TX:", signed.txid);
-
-      try {
-        const deleteUrl = `${
-          import.meta.env.VITE_API_URL
-        }/transaction/vault/delete/${signed.txid}`;
-        const deleteRes = await fetch(deleteUrl, { method: "DELETE" });
-
-        if (!deleteRes.ok) {
-          throw new Error(`❌ Failed to delete vault: ${deleteRes.status}`);
-        }
-
-        console.log("🗑️ Vault deleted successfully.");
-      } catch (deleteErr) {
-        console.error("❌ Error deleting vault:", deleteErr);
+      const apiUrl = `${import.meta.env.VITE_API_URL}/transaction/sendtransaction`;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          signedPsbt: signed.psbt,
+          mintTxid,
+        }),
+      });
+console.log('res', res.ok);
+      if (!res.ok) {
+        throw new Error(`❌ API request failed: ${res.status}`);
       }
+
+      console.log("✅ Transaction sent successfully.");
     } catch (err: any) {
       if (err?.message?.includes("User rejected")) {
         console.warn("❌ User rejected the PSBT signing request.");
       } else {
-        console.error("❌ Signing or broadcasting failed:", err);
+        console.error("❌ Signing or sending failed:", err);
       }
     } finally {
       setShowTransactionModal(false);
@@ -638,18 +642,22 @@ await fetchVaultTransactions(wallet?.paymentAddress?.address ?? "");
             />
           </div>
         </div>
-        {/* {modalOutputs && ( */}
         <MintModal
           show={showTransactionModal}
           onClose={() => setShowTransactionModal(false)}
           handlePsbt={handlePsbt}
           outputs={mintData}
         />
-        {/* )}/ */}
         <WithdrawModal
           show={showWithDrawModal}
           onClose={() => setShowWithDrawModal(false)}
           handleWithdrawPsbt={handleWithdrawPsbt}
+          vaults={selectedVaultData}
+        />
+        <TransactionModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          transactionId="aa36cf03940edcc358c02b5b06bbc5bf79dd3d75cd8c61f492809ef63967169"
         />
       </main>
     </div>

@@ -11,6 +11,8 @@ export interface LiquidationResponse {
     psbt: string;
   };
   numberOfInputs?: number; 
+  txid: string;
+  
 }
 
 export interface LiquidationState {
@@ -20,4 +22,5 @@ export interface LiquidationState {
   };
   paymentAddress: string;
   ordinalsAddress: string;
+  txid: string;
 }

@@ -12,6 +12,7 @@ export default function WithdrawPanel({
   totalDebt,
   totalCollateral,
 }: WithDrawPanelProps) {
+
   const theme: Theme =
     localStorage.getItem("theme") === "light" ||
     localStorage.getItem("theme") === "dark"
@@ -38,7 +39,7 @@ export default function WithdrawPanel({
   return (
     <>
       {/* Header */}
-      {vaults.some(v => v.status === "confirmed") && (
+      {/* {vaults.some(v => v.status === "confirmed") && (
       <div className="flex items-center justify-between mt-6">
         <label
           className={`text-sm ${
@@ -63,7 +64,7 @@ export default function WithdrawPanel({
           />
         </div>
       </div>
-      )}
+      )} */}
 
       {/* Vault list */}
       <div className="mt-2 space-y-3 max-h-60 overflow-y-auto hide-scrollbar">
