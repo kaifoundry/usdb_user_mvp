@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export function useTimeAgo(dateInput?: string | number | Date): string {
+export function useTimeAgo(dateInput?: string | number | Date |null): string {
   const [timeAgo, setTimeAgo] = useState("Pending");
 
   useEffect(() => {

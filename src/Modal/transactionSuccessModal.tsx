@@ -1,77 +1,144 @@
-import { Check, Copy } from "lucide-react"
-import { useState } from "react"
+import { Check, Copy, X } from "lucide-react";
+import { useState } from "react";
 
 interface TransactionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  transactionId: string
+  isOpen: boolean;
+  onClose: () => void;
+  transactionId: string;
+  handleCloseModal: () => void; 
 }
 
-export function TransactionModal({ isOpen, onClose, transactionId }: TransactionModalProps) {
-  const [copied, setCopied] = useState(false)
-
+export function TransactionModal({
+  isOpen,
+  onClose,
+  transactionId,
+  handleCloseModal
+}: TransactionModalProps) {
+  const [copied, setCopied] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(transactionId)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(transactionId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err)
+      console.error("Failed to copy:", err);
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
-      <div className="relative bg-gray-900 rounded-2xl p-8 max-w-md w-full mx-4 text-center">
-        {/* Header */}
-        <div className="text-gray-400 text-sm font-medium mb-8">Testnet</div>
+      <div
+        className="relative rounded-2xl max-w-md w-full mx-4 text-center"
+        style={{ backgroundColor: "#111111" }}
+      >
+        {/* Mac-style title bar */}
+        <div
+          className="w-full flex items-center gap-2 px-4 py-2 rounded-t-2xl"
+          style={{ backgroundColor: "#3B3B3B" }} // Dark gray Mac-style title bar
+        >
+          <button
+            onClick={onClose}
+            className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#FF5F57" }}
+            aria-label="Close"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            {hovered && <X className="w-2 h-2 text-black" strokeWidth={3} />}
+          </button>
+          {/* Title centered */}
+          <div className="flex-1 text-center text-gray-200 text-sm font-medium">
+            Xverse Wallet
+          </div>
+        </div>
+<div className="pb-8 px-8">
+        {/* Network Label */}
+        <div
+          style={{ color: "#9CA3AF" }}
+          className="text-sm font-medium mb-8 mt-4"
+        >
+          Testnet
+        </div>
 
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 rounded-full border-2 border-green-500 flex items-center justify-center">
-            <Check className="w-8 h-8 text-green-500" strokeWidth={3} />
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ border: "2px solid #10B981" }}
+          >
+            <Check
+              className="w-8 h-8"
+              style={{ color: "#10B981" }}
+              strokeWidth={2.5}
+            />
           </div>
         </div>
 
         {/* Title */}
-        <h2 className="text-white text-2xl font-bold mb-3">Transaction broadcast</h2>
+        <h2 className="text-white text-[22px] font-bold mb-2">
+          Transaction broadcast
+        </h2>
 
         {/* Description */}
-        <p className="text-gray-400 text-base mb-6">Your transaction has been successfully submitted.</p>
+        <p style={{ color: "#9CA3AF" }} className="text-base mb-6">
+          Your transaction has been successfully submitted.
+        </p>
 
         {/* Explorer Link */}
-        <div className="text-gray-300 text-sm mb-8">
-          See on <span className="text-white font-medium">Explorer</span>
+        <div style={{ color: "#D1D5DB" }} className="text-sm mb-8">
+          See on{" "}
+          <a
+            href={`https://mempool.space/testnet4/tx/${transactionId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white font-medium hover:underline"
+          >
+            Explorer
+          </a>
         </div>
 
         {/* Transaction ID Section */}
-        <div className="mb-8">
-          <div className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3 text-left">
+        <div className="mb-8 text-left">
+          <div
+            style={{ color: "#9CA3AF" }}
+            className="text-xs font-medium uppercase tracking-wider mb-2"
+          >
             Transaction ID
           </div>
-          <div className="bg-gray-800 rounded-lg p-4 flex items-center justify-between">
-            <div className="text-white text-sm font-mono break-all mr-3 leading-relaxed">{transactionId}5</div>
+          <div
+            className="rounded-lg p-4 flex items-center justify-between"
+            style={{ backgroundColor: "#1A1A1A" }}
+          >
+            <div className="text-white text-sm font-mono break-all mr-3">
+              {transactionId}
+            </div>
             <button
-            type="button"
+              type="button"
               onClick={handleCopy}
-              className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 h-auto min-w-0"
+              style={{ color: copied ? "#10B981" : "#9CA3AF" }}
+              className="hover:text-white"
             >
-              {/* <Copy className={cn("w-4 h-4", copied && "text-green-500")} /> */}
+              <Copy className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Close Button */}
-        <button onClick={onClose} className="w-full bg-white text-black hover:bg-gray-100 font-medium py-3 rounded-xl">
+        <button
+          onClick={handleCloseModal}
+          className="w-full font-medium py-3 rounded-xl"
+          style={{
+            backgroundColor: "#FFFFFF",
+            color: "#000000",
+          }}
+        >
           Close
         </button>
+        </div>
       </div>
     </div>
-  )
+  );
 }

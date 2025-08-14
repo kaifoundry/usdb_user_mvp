@@ -59,6 +59,7 @@ export default function USDBCoin() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithDrawModal, setShowWithDrawModal] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transactionId, setTransactionId] = useState("");
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
 
@@ -384,7 +385,7 @@ export default function USDBCoin() {
           data: data.data,
           paymentAddress: payload.paymentAddress,
           ordinalsAddress: payload.ordinalsAddress,
-          txid:data?.txid
+          txid: data?.txid,
         };
 
         setLiquidationData(liquidationState);
@@ -397,81 +398,84 @@ export default function USDBCoin() {
     }
   };
 
-  const handleWithdrawPsbt = async (): Promise<void> => {
-    if (!liquidationData) {
-      console.warn("⚠️ No liquidation data available.");
+const handleWithdrawPsbt = async (): Promise<void> => {
+  if (!liquidationData) {
+    console.warn("⚠️ No liquidation data available.");
+    return;
+  }
+  const {
+    data: liquidationDetails,
+    paymentAddress,
+    ordinalsAddress,
+    txid,
+  } = liquidationData;
+  const psbtBase64 = liquidationDetails?.psbt;
+  const mintTxid = txid;
+
+  if (!psbtBase64) {
+    console.error("❌ Missing PSBT data.");
+    return;
+  }
+  if (!paymentAddress || !ordinalsAddress) {
+    console.error("❌ Missing address data.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const signInputs: Record<string, number[]> = {
+      [paymentAddress]: [1],
+      [ordinalsAddress]: [0],
+    };
+
+    const signed = await signPsbt({
+      psbtBase64,
+      signInputs,
+      broadcast: false,
+    });
+
+    if (!signed?.psbt) {
+      console.warn("⚠️ No signed PSBT returned.");
       return;
     }
-
-    const {
-      data: liquidationDetails,
-      paymentAddress,
-      ordinalsAddress,
-      txid
-    } = liquidationData;
-    console.log("liquidationDetails", txid);
-    const psbtBase64 = liquidationDetails?.psbt;
-    const mintTxid = txid;
-
-    if (!psbtBase64) {
-      console.error("❌ Missing PSBT data.");
-      return;
+    setShowWithDrawModal(false);
+    const apiUrl = `${import.meta.env.VITE_API_URL}/transaction/sendtransaction`;
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        signedPsbt: signed.psbt,
+        mintTxid,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(`❌ API request failed: ${res.status}`);
     }
-
-    if (!paymentAddress || !ordinalsAddress) {
-      console.error("❌ Missing address data.");
-      return;
+    if (data.success && data.sendRaxtxResult) {
+      setTransactionId(data.sendRaxtxResult);
+      setIsModalOpen(true);
     }
-
-    setLoading(true);
-
-    try {
-      const signInputs: Record<string, number[]> = {
-        [paymentAddress]: [1],
-        [ordinalsAddress]: [0],
-      };
-
-      console.log("psbtBase64", psbtBase64);
-      console.log("signInputs", signInputs);
-
-      const signed = await signPsbt({
-        psbtBase64,
-        signInputs,
-        broadcast: false,
-      });
-
-      console.log("🔄 Signing result:", signed);
-
-      if (!signed || !signed.psbt) {
-        console.warn("⚠️ No signed PSBT returned.");
-        return;
-      }
-      const apiUrl = `${import.meta.env.VITE_API_URL}/transaction/sendtransaction`;
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          signedPsbt: signed.psbt,
-          mintTxid,
-        }),
-      });
-console.log('res', res.ok);
-      if (!res.ok) {
-        throw new Error(`❌ API request failed: ${res.status}`);
-      }
-
-      console.log("✅ Transaction sent successfully.");
-    } catch (err: any) {
-      if (err?.message?.includes("User rejected")) {
-        console.warn("❌ User rejected the PSBT signing request.");
-      } else {
-        console.error("❌ Signing or sending failed:", err);
-      }
-    } finally {
-      setShowTransactionModal(false);
-      setLoading(false);
+  } catch (err: any) {
+    if (err?.message?.includes("User rejected")) {
+      console.warn("❌ User rejected the PSBT signing request.");
+    } else {
+      console.error("❌ Signing or sending failed:", err);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+ const handleCloseModal = () => {
+  setIsModalOpen(false);
+
+  if (wallet?.paymentAddress?.address) {
+    fetchVaultTransactions(wallet.paymentAddress.address);
+  }
+};
+
+
+
 
   // async function handleSign() {
   //   if (!paymentAddress) return;
@@ -575,8 +579,8 @@ console.log('res', res.ok);
     },
   ];
 
-  const handleClaim = (vaultId: string) => {
-    console.log(`Claiming vault ${vaultId}`);
+  const handleClaim = () => {
+    // console.log(`Claiming vault ${vaultId}`);
     // Add your claim logic here
   };
   return (
@@ -657,7 +661,8 @@ console.log('res', res.ok);
         <TransactionModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          transactionId="aa36cf03940edcc358c02b5b06bbc5bf79dd3d75cd8c61f492809ef63967169"
+          transactionId={transactionId}
+          handleCloseModal={handleCloseModal}
         />
       </main>
     </div>

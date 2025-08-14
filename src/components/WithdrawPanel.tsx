@@ -76,7 +76,7 @@ export default function WithdrawPanel({
               const vaultStatus = vault?.status;
               const isSelected = selectedVaults?.includes(vaultId);
               const confirmedAt = vault?.confirmed_at
-                ? useTimeAgo(vault?.confirmed_at)
+                ? useTimeAgo(vault?.confirmed_at ?? undefined)
                 : "Not confirmed yet..";
               const txId = vault?.tx_id ?? "No transanction";
               const usdbAmount = vault?.usdb_amount ?? 0;
