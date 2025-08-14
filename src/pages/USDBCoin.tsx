@@ -6,7 +6,7 @@ import NetworkBanner from "../components/networkBanner";
 import { useWallet } from "../api/connectWallet";
 import { useGetBalance } from "../api/getBalance";
 import { signPsbt } from "../api/signPsbt";
-import type { TabType } from "../types/tab";
+import type { AuctionTabType, TabType } from "../types/tab";
 import {
   FEE_REQUIRED_TO_MINT,
   MINT_AMOUNT,
@@ -36,6 +36,7 @@ import {
   type HistoricalVault,
 } from "../components/auctionHistory";
 import { TransactionModal } from "../Modal/transactionSuccessModal";
+import { AuctionVaultList } from "../components/auctionVaultList";
 
 export default function USDBCoin() {
   const { btcPrice, lastUpdated } = useBTCPrice();
@@ -44,6 +45,9 @@ export default function USDBCoin() {
   const { wallet, connectWallet } = useWallet();
   const network = useNetwork();
   const [activeTab, setActiveTab] = useState<TabType>("mint");
+  const [showAuctionTabs, setShowAuctionTabs] = useState(false); // track auction toggle
+  const [activeAuctionTab, setActiveAuctionTab] =
+    useState<AuctionTabType>("live");
   const [mintAmount, setMintAmount] = useState(MINT_AMOUNT.toFixed(2));
   const [collateralRatio, setCollateralRatio] = useState(COLLATERAL_RATIO);
   const [liquidationPrice, setLiquidationPrice] = useState("$0");
@@ -62,6 +66,10 @@ export default function USDBCoin() {
   const [transactionId, setTransactionId] = useState("");
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
+  const handleAuctionLinkClick = () => {
+    setShowAuctionTabs(true); // show auction tabs
+    setActiveAuctionTab("live"); // default to live
+  };
 
   useEffect(() => {
     if (!btcPrice || btcPrice === 0) return;
@@ -398,84 +406,83 @@ export default function USDBCoin() {
     }
   };
 
-const handleWithdrawPsbt = async (): Promise<void> => {
-  if (!liquidationData) {
-    console.warn("⚠️ No liquidation data available.");
-    return;
-  }
-  const {
-    data: liquidationDetails,
-    paymentAddress,
-    ordinalsAddress,
-    txid,
-  } = liquidationData;
-  const psbtBase64 = liquidationDetails?.psbt;
-  const mintTxid = txid;
-
-  if (!psbtBase64) {
-    console.error("❌ Missing PSBT data.");
-    return;
-  }
-  if (!paymentAddress || !ordinalsAddress) {
-    console.error("❌ Missing address data.");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const signInputs: Record<string, number[]> = {
-      [paymentAddress]: [1],
-      [ordinalsAddress]: [0],
-    };
-
-    const signed = await signPsbt({
-      psbtBase64,
-      signInputs,
-      broadcast: false,
-    });
-
-    if (!signed?.psbt) {
-      console.warn("⚠️ No signed PSBT returned.");
+  const handleWithdrawPsbt = async (): Promise<void> => {
+    if (!liquidationData) {
+      console.warn("⚠️ No liquidation data available.");
       return;
     }
-    setShowWithDrawModal(false);
-    const apiUrl = `${import.meta.env.VITE_API_URL}/transaction/sendtransaction`;
-    const res = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        signedPsbt: signed.psbt,
-        mintTxid,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(`❌ API request failed: ${res.status}`);
+    const {
+      data: liquidationDetails,
+      paymentAddress,
+      ordinalsAddress,
+      txid,
+    } = liquidationData;
+    const psbtBase64 = liquidationDetails?.psbt;
+    const mintTxid = txid;
+
+    if (!psbtBase64) {
+      console.error("❌ Missing PSBT data.");
+      return;
     }
-    if (data.success && data.sendRaxtxResult) {
-      setTransactionId(data.sendRaxtxResult);
-      setIsModalOpen(true);
+    if (!paymentAddress || !ordinalsAddress) {
+      console.error("❌ Missing address data.");
+      return;
     }
-  } catch (err: any) {
-    if (err?.message?.includes("User rejected")) {
-      console.warn("❌ User rejected the PSBT signing request.");
-    } else {
-      console.error("❌ Signing or sending failed:", err);
+
+    setLoading(true);
+    try {
+      const signInputs: Record<string, number[]> = {
+        [paymentAddress]: [1],
+        [ordinalsAddress]: [0],
+      };
+
+      const signed = await signPsbt({
+        psbtBase64,
+        signInputs,
+        broadcast: false,
+      });
+
+      if (!signed?.psbt) {
+        console.warn("⚠️ No signed PSBT returned.");
+        return;
+      }
+      setShowWithDrawModal(false);
+      const apiUrl = `${
+        import.meta.env.VITE_API_URL
+      }/transaction/sendtransaction`;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          signedPsbt: signed.psbt,
+          mintTxid,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`❌ API request failed: ${res.status}`);
+      }
+      if (data.success && data.sendRaxtxResult) {
+        setTransactionId(data.sendRaxtxResult);
+        setIsModalOpen(true);
+      }
+    } catch (err: any) {
+      if (err?.message?.includes("User rejected")) {
+        console.warn("❌ User rejected the PSBT signing request.");
+      } else {
+        console.error("❌ Signing or sending failed:", err);
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
- const handleCloseModal = () => {
-  setIsModalOpen(false);
+  };
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
 
-  if (wallet?.paymentAddress?.address) {
-    fetchVaultTransactions(wallet.paymentAddress.address);
-  }
-};
-
-
-
+    if (wallet?.paymentAddress?.address) {
+      fetchVaultTransactions(wallet.paymentAddress.address);
+    }
+  };
 
   // async function handleSign() {
   //   if (!paymentAddress) return;
@@ -596,54 +603,91 @@ const handleWithdrawPsbt = async (): Promise<void> => {
 
         <div className="w-full max-w-lg mx-auto">
           <div className="app-card rounded-2xl p-2 md:px-8 md:pb-6">
-            <Tabs activeTab={activeTab} onTabChange={handleTabChange} />
+            <Tabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              setShowAuctionTabs={setShowAuctionTabs}
+              showAuctionTabs={showAuctionTabs}
+              activeAuctionTab={activeAuctionTab}
+              setActiveAuctionTab={setActiveAuctionTab}
+            />
 
             <div className="relative overflow-hidden min-h-[400px]">
-              <div
-                className="flex w-[200%] transition-transform duration-500 ease-in-out"
-                style={{
-                  transform: `translateX(${
-                    activeTab === "mint" ? "0%" : "-50%"
-                  })`,
-                }}
-              >
-                <div className="w-1/2 shrink-0 px-4">
-                  <MintPanel
-                    mintAmount={Number(mintAmount)}
-                    collateralRatio={collateralRatio}
-                    liquidationPrice={liquidationPrice}
-                    requiredCollateralBTC={requiredCollateralBTC}
-                    btcPrice={btcPrice}
-                    feeRequiredToMint={FEE_REQUIRED_TO_MINT}
-                    Error={error}
-                  />
-                  {/* <AuctionVaultList vaults={mockVaults} onClaim={handleClaim} /> */}
-                  {/* <AuctionHistoryVault  vaults={mockHistoricalVaults}/> */}
+              {showAuctionTabs ? (
+                <div
+                  className="flex w-[200%] transition-transform duration-500 ease-in-out"
+                  style={{
+                    transform: `translateX(${
+                      activeAuctionTab === "live" ? "0%" : "-50%"
+                    })`,
+                  }}
+                >
+                  <div className="w-1/2 shrink-0 px-4">
+                    <AuctionVaultList
+                      vaults={mockVaults}
+                      onClaim={handleClaim}
+                    />
+                  </div>
+                  <div className="w-1/2 shrink-0 px-4">
+                    <AuctionHistoryVault vaults={mockHistoricalVaults} />
+                  </div>
                 </div>
-
-                <div className="w-1/2 shrink-0 px-4">
-                  <WithdrawPanel
-                    vaults={processedVaults}
-                    selectedVaults={selectedVaults}
-                    toggleVault={toggleVault}
-                    toggleSelectAll={toggleSelectAll}
-                    allSelected={allSelected}
-                    totalDebt={totalDebt}
-                    totalCollateral={totalCollateral}
-                  />
+              ) : (
+                <div
+                  className="flex w-[200%] transition-transform duration-500 ease-in-out"
+                  style={{
+                    transform: `translateX(${
+                      activeTab === "mint" ? "0%" : "-50%"
+                    })`,
+                  }}
+                >
+                  <div className="w-1/2 shrink-0 px-4">
+                    <MintPanel
+                      mintAmount={Number(mintAmount)}
+                      collateralRatio={collateralRatio}
+                      liquidationPrice={liquidationPrice}
+                      requiredCollateralBTC={requiredCollateralBTC}
+                      btcPrice={btcPrice}
+                      feeRequiredToMint={FEE_REQUIRED_TO_MINT}
+                      Error={error}
+                    />
+                  </div>
+                  <div className="w-1/2 shrink-0 px-4">
+                    <WithdrawPanel
+                      vaults={processedVaults}
+                      selectedVaults={selectedVaults}
+                      toggleVault={toggleVault}
+                      toggleSelectAll={toggleSelectAll}
+                      allSelected={allSelected}
+                      totalDebt={totalDebt}
+                      totalCollateral={totalCollateral}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <Button
-              activeTab={activeTab}
-              loading={loading}
-              handleMint={handleMint}
-              handleWithdraw={handleWithdraw}
-              connectWallet={connectWallet}
-              wallet={wallet}
-              Error={error}
-            />
+            {/* Only show Mint/Withdraw button if NOT in Auction */}
+            {!showAuctionTabs && (
+              <Button
+                activeTab={activeTab}
+                loading={loading}
+                handleMint={handleMint}
+                handleWithdraw={handleWithdraw}
+                connectWallet={connectWallet}
+                wallet={wallet}
+                Error={error}
+              />
+            )}
+
+            <div className="text-center mt-4">
+              <button
+                onClick={() => setShowAuctionTabs((prev) => !prev)}
+                className="text-gray-500 hover:text-gray-700 underline text-sm"
+              >
+                Switch to {showAuctionTabs ? "Mint / Withdraw" : "Auction"}
+              </button>
+            </div>
           </div>
         </div>
         <MintModal

@@ -1,5 +1,4 @@
 import { useWallet } from "../api/connectWallet";
-import { useTimeAgo } from "../Hooks/useTimeAgo";
 import type { WithDrawPanelProps } from "../interfaces/components/withDrawPanelpropsInterface";
 import type { Theme } from "../types/theme";
 import { VaultCard } from "./vaultCard";
