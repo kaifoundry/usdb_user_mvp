@@ -7,8 +7,6 @@ export default function WithdrawPanel({
   vaults,
   selectedVaults,
   toggleVault,
-  toggleSelectAll,
-  allSelected,
   totalDebt,
   totalCollateral,
 }: WithDrawPanelProps) {

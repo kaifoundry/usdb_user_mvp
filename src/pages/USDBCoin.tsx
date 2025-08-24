@@ -66,10 +66,10 @@ export default function USDBCoin() {
   const [transactionId, setTransactionId] = useState("");
 
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
-  const handleAuctionLinkClick = () => {
-    setShowAuctionTabs(true); // show auction tabs
-    setActiveAuctionTab("live"); // default to live
-  };
+  // const handleAuctionLinkClick = () => {
+  //   setShowAuctionTabs(true); // show auction tabs
+  //   setActiveAuctionTab("live"); // default to live
+  // };
 
   useEffect(() => {
     if (!btcPrice || btcPrice === 0) return;

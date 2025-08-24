@@ -7,7 +7,6 @@ const AIAssistantSection: React.FC<AIAssistantSectionProps> = ({
   aiPrompt,
   setAiPrompt,
   aiResponse,
-  setAiResponse,
   aiLoading,
   handleAiSubmit,
 }) => {

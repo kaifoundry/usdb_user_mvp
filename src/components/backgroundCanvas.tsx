@@ -8,7 +8,7 @@ const BackgroundCanvas: React.FC= () => {
   const targetScrollYRef = useRef(0);
   const currentScrollYRef = useRef(0);
   const animationFrameRef = useRef<number>(0);
-const [theme, setTheme] = useState<Theme>(
+const [theme] = useState<Theme>(
       localStorage.getItem("theme") === "light" ||
         localStorage.getItem("theme") === "dark"
         ? (localStorage.getItem("theme") as Theme)
