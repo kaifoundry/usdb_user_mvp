@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { request, RpcErrorCode } from "sats-connect";
+import { ensureXverseContext } from "../Hooks/useMobileSignIn";
 import type { PaymentBalance } from "../interfaces/api/getBalanceInterface";
 import { useWallet } from "./connectWallet";
 
@@ -20,6 +21,12 @@ export const useGetBalance = () => {
     setError(null);
 
     try {
+      try {
+        ensureXverseContext();
+      } catch (e) {
+        console.warn("ensureXverseContext triggered redirect or failed:", e);
+        throw e;
+      }
       const response = await request("getBalance", null);
 
       if (response.status === "success") {
@@ -31,10 +38,12 @@ export const useGetBalance = () => {
         setBalance(paymentAddress);
         return { paymentAddress };
       } else {
-        if (response.error.code === RpcErrorCode.USER_REJECTION) {
+        const code = response.error?.code;
+        const message = response.error?.message ?? "Unknown wallet error";
+        if (code === RpcErrorCode.USER_REJECTION) {
           throw new Error("User rejected the request.");
         }
-        throw new Error(`Wallet error: ${response.error.message}`);
+        throw new Error(`Wallet error: ${message}`);
       }
     } catch (err: any) {
       console.error("getBalance error:", err);

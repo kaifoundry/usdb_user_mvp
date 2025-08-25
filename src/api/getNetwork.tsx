@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import Wallet from 'sats-connect';
+import { request } from 'sats-connect';
 import type { RpcResult, RpcError } from 'sats-connect';
 import { useWallet } from './connectWallet';
+import { ensureXverseContext } from "../Hooks/useMobileSignIn";
 
 
 type NetworkSuccess = {
@@ -26,7 +27,13 @@ export function useNetwork(): NetworkResponse | undefined {
 
     async function fetchNetwork() {
       try {
-        const res: RpcResult<'wallet_getNetwork'> = await Wallet.request(
+        try {
+          ensureXverseContext();
+        } catch (e) {
+          console.warn("ensureXverseContext triggered redirect or failed:", e);
+          throw e;
+        }
+        const res: RpcResult<'wallet_getNetwork'> = await request(
           'wallet_getNetwork',
           undefined
         );

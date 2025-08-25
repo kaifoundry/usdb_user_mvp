@@ -1,15 +1,23 @@
 import { RpcErrorCode, request } from "sats-connect";
+import { ensureXverseContext } from "../Hooks/useMobileSignIn";
 import type { RawRuneBalance, RuneBalance } from "../interfaces/api/getRunesBalanceInterface";
 
 
 
 export async function getRunesBalance(): Promise<RuneBalance[]> {
+  try {
+    ensureXverseContext();
+  } catch (e) {
+    console.warn("ensureXverseContext triggered redirect or failed:", e);
+    throw e;
+  }
   let response = await request("runes_getBalance", null);
   console.log('response',response)
   if (response.status === "success") {
     return formatRawBalances(response.result.balances as RawRuneBalance[]);
   }
-  if (response.error.code !== RpcErrorCode.ACCESS_DENIED) {
+  const code = response.error?.code;
+  if (code !== RpcErrorCode.ACCESS_DENIED) {
     throw new Error("Failed to get balance.", { cause: response.error });
   }
   const permissionRes = await request("wallet_requestPermissions", undefined);

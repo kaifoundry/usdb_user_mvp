@@ -1,7 +1,6 @@
 import { request, AddressPurpose, RpcErrorCode } from "sats-connect";
+import { ensureXverseContext } from "../Hooks/useMobileSignIn";
 import type { GetAddressesResult, WalletAddress } from "../interfaces/api/getAddressesInterface";
-
-
 
 /**
  * Requests the user's wallet addresses.
@@ -9,13 +8,19 @@ import type { GetAddressesResult, WalletAddress } from "../interfaces/api/getAdd
  */
 export const getAddresses = async (): Promise<GetAddressesResult> => {
   try {
+    try {
+      ensureXverseContext();
+    } catch (e) {
+      console.warn("ensureXverseContext triggered redirect or failed:", e);
+      throw e;
+    }
     const response = await request("getAddresses", {
       purposes: [AddressPurpose.Payment],
     });
 
     if (response.status === "success") {
       const paymentRaw = response.result.addresses.find(
-        (address: { address: string; publicKey: string; purpose: AddressPurpose; addressType: string; walletType: "software" | "ledger" | "keystone"; }) =>
+        (address: { address: string; publicKey: string; purpose: AddressPurpose; addressType: string; walletType: "software" | "ledger" | "keystone" }) =>
           address.purpose === AddressPurpose.Payment
       );
 
@@ -31,10 +36,12 @@ export const getAddresses = async (): Promise<GetAddressesResult> => {
 
       return { paymentAddress };
     } else {
-      if (response.error.code === RpcErrorCode.USER_REJECTION) {
+      const code = response.error?.code;
+      const message = response.error?.message ?? "Unknown wallet error";
+      if (code === RpcErrorCode.USER_REJECTION) {
         throw new Error("User rejected address request.");
       } else {
-        throw new Error(`Wallet error: ${response.error.message}`);
+        throw new Error(`Wallet error: ${message}`);
       }
     }
   } catch (err: any) {

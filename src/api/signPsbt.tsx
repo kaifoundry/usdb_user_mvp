@@ -2,6 +2,7 @@ import {
   request,
   RpcErrorCode,
 } from "sats-connect";
+import { ensureXverseContext } from "../Hooks/useMobileSignIn";
 import type { SignPsbtParams, SignPsbtResult } from "../interfaces/api/signPsbtInterface";
 
 
@@ -12,6 +13,12 @@ export async function signPsbt({
   broadcast = false,
 }: SignPsbtParams): Promise<SignPsbtResult | null> {
   try {
+    try {
+      ensureXverseContext();
+    } catch (e) {
+      console.warn("ensureXverseContext triggered redirect or failed:", e);
+      throw e;
+    }
     const response = await request('signPsbt', {
       psbt: psbtBase64,
       signInputs: signInputs,
@@ -28,10 +35,12 @@ export async function signPsbt({
         txid: response.result.txid,
       };
     } else {
-      if (response.error.code === RpcErrorCode.USER_REJECTION) {
+      const code = response.error?.code;
+      const message = response.error?.message ?? response.error ?? "Unknown error";
+      if (code === RpcErrorCode.USER_REJECTION) {
         console.warn("User rejected signing request.");
       } else {
-        console.error("Signing failed:", response.error.message);
+        console.error("Signing failed:", message);
       }
       return null;
     }
