@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { request, AddressPurpose, RpcErrorCode } from "sats-connect";
 import type { ConnectWalletResult, WalletContextType } from "../interfaces/api/connectWalletInterface";
 import { useEnsureXverseContext, ensureXverseContext } from "../Hooks/useMobileSignIn";
