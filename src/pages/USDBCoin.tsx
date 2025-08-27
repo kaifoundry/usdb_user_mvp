@@ -3,7 +3,7 @@ import Header from "../Layout/Header";
 import BackgroundCanvas from "../components/backgroundCanvas";
 import { useBTCPrice } from "../Hooks/useBTCPrice";
 import NetworkBanner from "../components/networkBanner";
-import { useWallet } from "../api/connectWallet";
+import { ConnectXverseButton, useWallet } from "../api/connectWallet";
 import { useGetBalance } from "../api/getBalance";
 import { signPsbt } from "../api/signPsbt";
 import type { AuctionTabType, TabType } from "../types/tab";
@@ -219,9 +219,8 @@ export default function USDBCoin() {
   const fetchVaultTransactions = async (
     address: string
   ): Promise<VaultTransaction[]> => {
-    const url = `${
-      import.meta.env.VITE_API_URL
-    }/transaction/vault?payment_address=${address}`;
+    const url = `${import.meta.env.VITE_API_URL
+      }/transaction/vault?payment_address=${address}`;
 
     try {
       const response = await fetch(url, {
@@ -342,7 +341,7 @@ export default function USDBCoin() {
   useEffect(() => {
     setAllSelected(
       processedVaults.length > 0 &&
-        selectedVaults.length === processedVaults.length
+      selectedVaults.length === processedVaults.length
     );
   }, [selectedVaults, processedVaults]);
 
@@ -447,9 +446,8 @@ export default function USDBCoin() {
         return;
       }
       setShowWithDrawModal(false);
-      const apiUrl = `${
-        import.meta.env.VITE_API_URL
-      }/transaction/sendtransaction`;
+      const apiUrl = `${import.meta.env.VITE_API_URL
+        }/transaction/sendtransaction`;
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -617,9 +615,8 @@ export default function USDBCoin() {
                 <div
                   className="flex w-[200%] transition-transform duration-500 ease-in-out"
                   style={{
-                    transform: `translateX(${
-                      activeAuctionTab === "live" ? "0%" : "-50%"
-                    })`,
+                    transform: `translateX(${activeAuctionTab === "live" ? "0%" : "-50%"
+                      })`,
                   }}
                 >
                   <div className="w-1/2 shrink-0 px-4">
@@ -636,9 +633,8 @@ export default function USDBCoin() {
                 <div
                   className="flex w-[200%] transition-transform duration-500 ease-in-out"
                   style={{
-                    transform: `translateX(${
-                      activeTab === "mint" ? "0%" : "-50%"
-                    })`,
+                    transform: `translateX(${activeTab === "mint" ? "0%" : "-50%"
+                      })`,
                   }}
                 >
                   <div className="w-1/2 shrink-0 px-4">
@@ -708,6 +704,10 @@ export default function USDBCoin() {
           transactionId={transactionId}
           handleCloseModal={handleCloseModal}
         />
+
+        <ConnectXverseButton />
+
+
       </main>
     </div>
   );
