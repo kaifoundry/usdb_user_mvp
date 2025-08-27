@@ -37,7 +37,7 @@ import {
 } from "../components/auctionHistory";
 import { TransactionModal } from "../Modal/transactionSuccessModal";
 import { AuctionVaultList } from "../components/auctionVaultList";
-import { formatDate, useFormattedDate } from "../Hooks/useTimeAgo";
+import { formatDate } from "../Hooks/useTimeAgo";
 import type { AuctionLiquidationRequest, AuctionLiquidationResponse, AuctionVault } from "../interfaces/pages/auctionInterface";
 import { initSocket } from "../api/socket";
 import { getRunesBalance } from "../api/getRunesBalance";
@@ -618,11 +618,12 @@ useEffect(() => {
   socket.on("auction_refresh", (resJson) => {
     console.log("📢 Auction refresh received raw:", resJson)
     const dataArray = Array.isArray(resJson) ? resJson : [];
+    if (connectedAuction && !errorAuction) {
 if (dataArray.length) {
       const updatedData = mapToAuctionVaults(dataArray)
       console.log("Mapped auction data:", updatedData)
       setAuctionData(updatedData)
-    }
+    }}
   })
 
   return () => {
@@ -704,76 +705,76 @@ if (runeBalance < 10) {
   }
 }
 
- const handleClaimPsbt = async (): Promise<void> => {
-    if (!liquidationData) {
-      console.warn("⚠️ No liquidation data available.");
-      return;
-    }
-    const {
-      data: liquidationDetails,
-      paymentAddress,
-      ordinalsAddress,
-      txid,
-    } = liquidationData;
-    const psbtBase64 = liquidationDetails?.psbt;
-    const mintTxid = txid;
+//  const handleClaimPsbt = async (): Promise<void> => {
+//     if (!liquidationData) {
+//       console.warn("⚠️ No liquidation data available.");
+//       return;
+//     }
+//     const {
+//       data: liquidationDetails,
+//       paymentAddress,
+//       ordinalsAddress,
+//       txid,
+//     } = liquidationData;
+//     const psbtBase64 = liquidationDetails?.psbt;
+//     const mintTxid = txid;
 
-    if (!psbtBase64) {
-      console.error("❌ Missing PSBT data.");
-      return;
-    }
-    if (!paymentAddress || !ordinalsAddress) {
-      console.error("❌ Missing address data.");
-      return;
-    }
+//     if (!psbtBase64) {
+//       console.error("❌ Missing PSBT data.");
+//       return;
+//     }
+//     if (!paymentAddress || !ordinalsAddress) {
+//       console.error("❌ Missing address data.");
+//       return;
+//     }
 
-    setLoading(true);
-    try {
-      const signInputs: Record<string, number[]> = {
-        [paymentAddress]: [1],
-        [ordinalsAddress]: [0],
-      };
+//     setLoading(true);
+//     try {
+//       const signInputs: Record<string, number[]> = {
+//         [paymentAddress]: [1],
+//         [ordinalsAddress]: [0],
+//       };
 
-      const signed = await signPsbt({
-        psbtBase64,
-        signInputs,
-        broadcast: false,
-      });
+//       const signed = await signPsbt({
+//         psbtBase64,
+//         signInputs,
+//         broadcast: false,
+//       });
 
-      if (!signed?.psbt) {
-        console.warn("⚠️ No signed PSBT returned.");
-        return;
-      }
-      setShowWithDrawModal(false);
-      const apiUrl = `${
-        import.meta.env.VITE_API_URL
-      }/api/transaction/sendtransaction`;
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          signedPsbt: signed.psbt,
-          mintTxid,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(`❌ API request failed: ${res.status}`);
-      }
-      if (data.success && data.sendRaxtxResult) {
-        setTransactionId(data.sendRaxtxResult);
-        setIsModalOpen(true);
-      }
-    } catch (err: any) {
-      if (err?.message?.includes("User rejected")) {
-        console.warn("❌ User rejected the PSBT signing request.");
-      } else {
-        console.error("❌ Signing or sending failed:", err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+//       if (!signed?.psbt) {
+//         console.warn("⚠️ No signed PSBT returned.");
+//         return;
+//       }
+//       setShowWithDrawModal(false);
+//       const apiUrl = `${
+//         import.meta.env.VITE_API_URL
+//       }/api/transaction/sendtransaction`;
+//       const res = await fetch(apiUrl, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           signedPsbt: signed.psbt,
+//           mintTxid,
+//         }),
+//       });
+//       const data = await res.json();
+//       if (!res.ok) {
+//         throw new Error(`❌ API request failed: ${res.status}`);
+//       }
+//       if (data.success && data.sendRaxtxResult) {
+//         setTransactionId(data.sendRaxtxResult);
+//         setIsModalOpen(true);
+//       }
+//     } catch (err: any) {
+//       if (err?.message?.includes("User rejected")) {
+//         console.warn("❌ User rejected the PSBT signing request.");
+//       } else {
+//         console.error("❌ Signing or sending failed:", err);
+//       }
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
   return (
     <div className="min-h-screen flex flex-col">
