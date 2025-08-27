@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react"
+import { useFormattedDate } from "../Hooks/useTimeAgo"
 
 export interface HistoricalVault {
   id: string
@@ -50,8 +51,8 @@ export function AuctionHistoryVault({ vaults }: HistoricalVaultsTableProps) {
                   idx !== 0 ? "border-t border-[rgba(255,255,255,0.1)]" : ""
                 } hover:bg-[#1a1a1a] transition-colors`}
               >
-                <td className="py-2 px-3 text-white font-medium">{vault.vaultId}</td>
-                <td className="py-2 px-3 text-white">{vault.date}</td>
+                <td className="py-2 px-3 text-white font-medium"># {vault.vaultId}</td>
+                <td className="py-2 px-3 text-white">{useFormattedDate(vault.date)}</td>
                 <td className="py-2 px-3 text-white">{vault.btcCollateral}</td>
                 <td className="py-2 px-3 text-white">{vault.finalBid}</td>
                 <td className="py-2 px-3 text-white">

@@ -236,7 +236,7 @@ export const VaultCard: React.FC<VaultCardProps> = ({
                 >
                   {ratioLabel}
                 </span>
-                {ratioLabel === "At Risk" && (
+                {/* {ratioLabel === "At Risk" && (
                   <button
                     className={` border px-2 py-0.5 rounded-md ${
                       theme === "light"
@@ -246,7 +246,7 @@ export const VaultCard: React.FC<VaultCardProps> = ({
                   >
                     Top Up
                   </button>
-                )}
+                )} */}
               </div>
             </div>
           </div>

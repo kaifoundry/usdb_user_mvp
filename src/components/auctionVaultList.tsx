@@ -1,48 +1,47 @@
+import { useAuctionTimer } from "../Hooks/useTimeAgo"
+import type { AuctionVault } from "../interfaces/pages/auctionInterface"
 import { AuctionVaultCard } from "./auctionVaultCard"
 
 
-interface AuctionVault {
-  id: string
-  vaultId: string
-  liquidationStarted: string
-  timeLeft: string
-  txId: string
-  vaultCollateral: {
-    amount: string
-    currency: string
-  }
-  lot: {
-    amount: string
-    currency: string
-  }
-  currentClaimPrice: {
-    amount: string
-    unit: string
-    currency: string
-  }
-}
-
-interface AuctionVaultListProps {
+export function AuctionVaultList({
+  vaults,
+  onClaim,
+}: {
   vaults: AuctionVault[]
-  onClaim: (vaultId: string) => void
-}
-
-export function AuctionVaultList({ vaults, onClaim }: AuctionVaultListProps) {
+  onClaim: (mintTxid: string, currentClaimPrice: string) => void
+}) {
   return (
     <div className="space-y-6 mt-5">
       {vaults.map((vault) => (
-        <AuctionVaultCard
+        <AuctionVaultCardWrapper
           key={vault.id}
-          vaultId={vault.vaultId}
-          liquidationStarted={vault.liquidationStarted}
-          timeLeft={vault.timeLeft}
-          txId={vault.txId}
-          vaultCollateral={vault.vaultCollateral}
-          lot={vault.lot}
-          currentClaimPrice={vault.currentClaimPrice}
-          onClaim={() => onClaim(vault.id)}
+          vault={vault}
+          onClaim={onClaim}
         />
       ))}
     </div>
+  )
+}
+
+function AuctionVaultCardWrapper({
+  vault,
+  onClaim,
+}: {
+  vault: AuctionVault
+  onClaim: (mintTxid: string, currentClaimPrice: string) => void
+}) {
+  const timeLeft = useAuctionTimer(vault.auctionStartTs, 30)
+
+  return (
+    <AuctionVaultCard
+      vaultId={vault.vaultId}
+      liquidationStarted={vault.liquidationStarted}
+      timeLeft={timeLeft}
+      txId={vault.txId}
+      vaultCollateral={vault.vaultCollateral}
+      lot={vault.lot}
+      currentClaimPrice={vault.currentClaimPrice}
+      onClaim={() => onClaim(vault.txId , vault.currentClaimPrice.amount)}
+    />
   )
 }

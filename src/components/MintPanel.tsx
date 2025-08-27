@@ -1,7 +1,7 @@
 import type { MintPanelProps } from "../interfaces/components/mintPanelPropsInterface";
 import balanceError from "/assets/balanceError.svg";
 import type { Theme } from "../types/theme";
-import { useWallet } from "../api/connectWallet";
+
 
 export default function MintPanel({
   mintAmount,
@@ -19,12 +19,12 @@ export default function MintPanel({
       : window.matchMedia("(prefers-color-scheme: light)").matches
       ? "light"
       : "dark";
-  const { wallet } = useWallet();
-  const displayValue = (val: any, unit = "") => {
-    if (!wallet) return `0${unit}`;
-    if (val === null || val === undefined || val === "--") return `0${unit}`;
-    return `${val}${unit}`;
-  };
+  // const { wallet } = useWallet();
+  // const displayValue = (val: any, unit = "") => {
+  //   if (!wallet) return `0${unit}`;
+  //   if (val === null || val === undefined || val === "--") return `0${unit}`;
+  //   return `${val}${unit}`;
+  // };
 
   return (
     <>
@@ -40,7 +40,7 @@ export default function MintPanel({
                 title={Error}
               />
             )}
-            {displayValue(requiredCollateralBTC)}
+            {requiredCollateralBTC}
           </span>
           <span className="text-muted font-normal text-base ml-4">BTC</span>
         </div>
@@ -49,7 +49,7 @@ export default function MintPanel({
       <div className="rounded-lg p-6 mt-4 app-input border border-gray-700">
         <div className="text-sm text-muted mb-2">Tokens received per mint</div>
         <div className="flex items-center justify-between text-2xl font-medium">
-          <span>{displayValue(mintAmount)}</span>
+          <span>{mintAmount}</span>
           <span className="text-muted font-normal text-base ml-4">USDBZ</span>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function MintPanel({
         <div className="flex justify-between">
           <span>BTC Price</span>
           <div className="flex items-center">
-            <span>$ {displayValue(btcPrice)}</span>
+            <span>$ {btcPrice}</span>
             <span className="relative flex h-2.5 w-2.5 ml-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
@@ -66,15 +66,15 @@ export default function MintPanel({
         </div>
         <div className="flex justify-between">
           <span>Collateral Ratio</span>
-          <span>{displayValue(collateralRatio, "%")}</span>
+          <span>{collateralRatio}%</span>
         </div>
         <div className="flex justify-between">
           <span>Fee required to mint</span>
-          <span>{displayValue(feeRequiredToMint, " BTC")}</span>
+          <span>{feeRequiredToMint} BTC</span>
         </div>
         <div className="flex justify-between">
           <span>Liquidation Price</span>
-          <span>~ {displayValue(liquidationPrice)}</span>
+          <span>~ {liquidationPrice}</span>
         </div>
       </div>
       <div
@@ -100,7 +100,7 @@ export default function MintPanel({
         ></span>
         <span className={Error ? "text-red-500" : ""}>
           Min Balance required is{" "}
-          {wallet && requiredCollateralBTC !== "--"
+          { requiredCollateralBTC !== "--"
             ? `${(
                 parseFloat(requiredCollateralBTC) + feeRequiredToMint
               ).toFixed(8)} BTC`
