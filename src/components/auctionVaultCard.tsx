@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react"
+import { ExternalLink } from "lucide-react";
 
 interface AuctionVaultCardProps {
   vaultId: string
@@ -6,15 +6,15 @@ interface AuctionVaultCardProps {
   timeLeft: string
   txId: string
   vaultCollateral: {
-    amount: string
+    amount: number   
     currency: string
   }
   lot: {
-    amount: string
+    amount: number
     currency: string
   }
   currentClaimPrice: {
-    amount: string
+    amount: number  
     unit: string
     currency: string
   }
@@ -31,7 +31,7 @@ export function AuctionVaultCard({
   currentClaimPrice,
   onClaim,
 }: AuctionVaultCardProps) {
-  const truncatedTxId = `${txId.slice(0, 5)}...${txId.slice(-4)}`
+  const truncatedTxId = `${txId.slice(0, 5)}...${txId.slice(-4)}`;
 
   return (
     <div className="app-card border border-gray-700 rounded-lg p-6 space-y-4 text-sm">
@@ -56,7 +56,9 @@ export function AuctionVaultCard({
           <span className="text-gray-400 text-xs">Tx ID</span>
           <div className="flex items-center gap-2">
             <span className="text-white text-sm">{truncatedTxId}</span>
-            <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+            <a href={`https://mempool.space/testnet4/tx/${txId}`}>
+              <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+            </a>
           </div>
         </div>
 
@@ -71,8 +73,7 @@ export function AuctionVaultCard({
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-xs">Lot</span>
           <span className="text-white text-sm">
-            {lot.amount}{" "}
-            <span className="font-medium">{lot.currency}</span>
+            {lot.amount} <span className="font-medium">{lot.currency}</span>
           </span>
         </div>
 
@@ -93,5 +94,5 @@ export function AuctionVaultCard({
         Claim
       </button>
     </div>
-  )
+  );
 }

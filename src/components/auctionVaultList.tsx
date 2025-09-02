@@ -2,13 +2,12 @@ import { useAuctionTimer } from "../Hooks/useTimeAgo"
 import type { AuctionVault } from "../interfaces/pages/auctionInterface"
 import { AuctionVaultCard } from "./auctionVaultCard"
 
-
 export function AuctionVaultList({
   vaults,
   onClaim,
 }: {
   vaults: AuctionVault[]
-  onClaim: (mintTxid: string, currentClaimPrice: string) => void
+  onClaim: (vault: AuctionVault) => void  
 }) {
   return (
     <div className="space-y-6 mt-5">
@@ -28,7 +27,7 @@ function AuctionVaultCardWrapper({
   onClaim,
 }: {
   vault: AuctionVault
-  onClaim: (mintTxid: string, currentClaimPrice: string) => void
+  onClaim: (vault: AuctionVault) => void
 }) {
   const timeLeft = useAuctionTimer(vault.auctionStartTs, 30)
 
@@ -41,7 +40,7 @@ function AuctionVaultCardWrapper({
       vaultCollateral={vault.vaultCollateral}
       lot={vault.lot}
       currentClaimPrice={vault.currentClaimPrice}
-      onClaim={() => onClaim(vault.txId , vault.currentClaimPrice.amount)}
+      onClaim={() => onClaim(vault)}  
     />
   )
 }

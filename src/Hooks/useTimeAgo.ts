@@ -59,7 +59,7 @@ export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString(undefined, options);
 }
 
-export function useAuctionTimer(startTs: string, durationMinutes = 30) {
+export function useAuctionTimer(startTs: string | number, durationMinutes = 30) {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export function useAuctionTimer(startTs: string, durationMinutes = 30) {
       return;
     }
 
-    const start = new Date(startTs).getTime();
+    const start = new Date(startTs).getTime(); // works for both string & number
     if (isNaN(start)) {
       setTimeLeft("Invalid date");
       return;
@@ -90,7 +90,7 @@ export function useAuctionTimer(startTs: string, durationMinutes = 30) {
       setTimeLeft(`${minutes} min ${seconds} sec left`);
     }
 
-    updateTimer(); // initial
+    updateTimer(); // initial run
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
@@ -98,4 +98,5 @@ export function useAuctionTimer(startTs: string, durationMinutes = 30) {
 
   return timeLeft;
 }
+
 

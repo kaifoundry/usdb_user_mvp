@@ -38,11 +38,17 @@ import {
 import { TransactionModal } from "../Modal/transactionSuccessModal";
 import { AuctionVaultList } from "../components/auctionVaultList";
 import { formatDate } from "../Hooks/useTimeAgo";
-import type { AuctionLiquidationRequest, AuctionLiquidationResponse, AuctionVault } from "../interfaces/pages/auctionInterface";
+import type {
+  AuctionLiquidationRequest,
+  AuctionLiquidationResponse,
+  AuctionLiquidationState,
+  AuctionVault,
+} from "../interfaces/pages/auctionInterface";
 import { initSocket } from "../api/socket";
 import { getRunesBalance } from "../api/getRunesBalance";
 import type { RuneBalance } from "../interfaces/api/getRunesBalanceInterface";
 import toast from "react-hot-toast";
+import AuctionWithdrawModal from "../Modal/auctionWithdrawModal";
 
 export default function USDBCoin() {
   const { btcPrice, lastUpdated } = useBTCPrice();
@@ -66,32 +72,39 @@ export default function USDBCoin() {
   const [mintData, setMintData] = useState<MintData | null>(null);
   const [liquidationData, setLiquidationData] =
     useState<LiquidationState | null>(null);
+  const [AuctionLiquidationData, setAuctionLiquidationData] =
+    useState<AuctionLiquidationState | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWithDrawModal, setShowWithDrawModal] = useState(false);
+  const [showWithDrawAuctionModal, setShowWithDrawAuctionModal] =
+    useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionId, setTransactionId] = useState("");
-const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<
+  const [getRunesBalanceResult, setGetRunesBalanceResult] = useState<
     RuneBalance[] | null
   >(null);
-   const [connectedAuction, setConnectedAuction] = useState(false)
-const [auctionData, setAuctionData] = useState<AuctionVault[]>([])
-const [errorAuction, setErrorAuction] = useState<string | null>(null)
-  const socket = initSocket()
+  const [connectedAuction, setConnectedAuction] = useState(false);
+  const [auctionData, setAuctionData] = useState<AuctionVault[]>([]);
+  const [auctionSingleData, setAuctionSingleData] = useState<AuctionVault[]>([]);
+
+  const [errorAuction, setErrorAuction] = useState<string | null>(null);
+  const socket = initSocket();
   const handleTabChange = (tab: TabType) => setActiveTab(tab);
   // const handleAuctionLinkClick = () => {
   //   setShowAuctionTabs(true); // show auction tabs
   //   setActiveAuctionTab("live"); // default to live
   // };
 
-   useEffect(() => {
-      if (wallet && wallet?.paymentAddress?.address) {
-        (async () => {
-          const response2 = await getRunesBalance();
-          setGetRunesBalanceResult(response2);
-        })();
-      }
-    }, [wallet?.paymentAddress?.address]);
+  useEffect(() => {
+    if (wallet && wallet?.paymentAddress?.address) {
+      (async () => {
+        const response2 = await getRunesBalance();
+        setGetRunesBalanceResult(response2);
+      })();
+    }
+  }, [wallet?.paymentAddress?.address]);
   useEffect(() => {
     if (!btcPrice || btcPrice === 0) return;
     const requiredCollateral =
@@ -510,34 +523,35 @@ const [errorAuction, setErrorAuction] = useState<string | null>(null)
   };
 
   const fetchAuctionHistory = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auction/inactivelist`)
-        const json = await res.json()
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auction/inactivelist`
+      );
+      const json = await res.json();
 
-        // transform API response -> HistoricalVault[]
-        console.log('json',json.data)
-        const mapped: HistoricalVault[] = json.data.map((item: any) => ({
-          
-          id: String(item.id),
-          vaultId: String(item.vault_id),
-          date: String(item.claim_tx_success_ts),
-          btcCollateral: String(item.collateral_locked),
-          finalBid: String(item.current_claim_price),
-          walletAddress: item.claim_winner_address,
-        }))
-console.log('mapped',mapped)
-        setAuctionHistory(mapped)
-      } catch (err) {
-        console.error("Error fetching auction history:", err)
-      } finally {
-        setLoading(false)
-      }
+      // transform API response -> HistoricalVault[]
+      console.log("json", json.data);
+      const mapped: HistoricalVault[] = json.data.map((item: any) => ({
+        id: String(item.id),
+        vaultId: String(item.vault_id),
+        date: String(item.claim_tx_success_ts),
+        btcCollateral: String(item.collateral_locked),
+        finalBid: String(item.current_claim_price),
+        walletAddress: item.claim_winner_address,
+      }));
+      console.log("mapped", mapped);
+      setAuctionHistory(mapped);
+    } catch (err) {
+      console.error("Error fetching auction history:", err);
+    } finally {
+      setLoading(false);
     }
-    useEffect(() => {
-       if (wallet?.paymentAddress?.address && activeAuctionTab === "past") {
+  };
+  useEffect(() => {
+    if (wallet?.paymentAddress?.address && activeAuctionTab === "past") {
       fetchAuctionHistory();
-       }
-    }, [wallet?.paymentAddress?.address, activeAuctionTab]);
+    }
+  }, [wallet?.paymentAddress?.address, activeAuctionTab]);
 
   //   {
   //     id: "1",
@@ -581,200 +595,221 @@ console.log('mapped',mapped)
   //   },
   // ];
 
+  // 🔗 Fetch initial list
+  useEffect(() => {
+    if (wallet?.paymentAddress?.address && activeAuctionTab === "live") {
+      fetch(`${import.meta.env.VITE_API_URL}/api/auction/activelist`)
+        .then((res) => res.json())
+        .then((resJson) => {
+          console.log("📦 Initial auction data:", resJson);
+          setAuctionData(mapToAuctionVaults(resJson.data || []));
+        })
+        .catch((err) => setErrorAuction(err.message));
+    }
+  }, [wallet?.paymentAddress?.address, activeAuctionTab]);
 
-// 🔗 Fetch initial list
-useEffect(() => {
-       if (wallet?.paymentAddress?.address && activeAuctionTab === "live") {
+  // 🔗 Setup socket
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+      setConnectedAuction(true);
+    });
 
-  fetch(`${import.meta.env.VITE_API_URL}/api/auction/activelist`)
-    .then((res) => res.json())
-    .then((resJson) => {
-      console.log("📦 Initial auction data:", resJson)
-      setAuctionData(mapToAuctionVaults(resJson.data || []))
-    })
-    .catch((err) => setErrorAuction(err.message))
-  }
-}, [wallet?.paymentAddress?.address, activeAuctionTab])
+    socket.on("disconnect", (reason) => {
+      console.warn("❌ Socket disconnected:", reason);
+      setConnectedAuction(false);
+    });
 
-// 🔗 Setup socket
-useEffect(() => {
+    socket.on("connect_error", (err) => {
+      console.error("⚠️ Connect error:", err.message);
+      setErrorAuction(err.message);
+    });
 
-  socket.on("connect", () => {
-    console.log("✅ Socket connected:", socket.id)
-    setConnectedAuction(true)
-  })
+    // Update auction data on socket event
+    socket.on("auction_refresh", (resJson) => {
+      console.log("📢 Auction refresh received raw:", resJson);
+      const dataArray = Array.isArray(resJson) ? resJson : [];
+      if (connectedAuction && !errorAuction) {
+        if (dataArray.length) {
+          const updatedData = mapToAuctionVaults(dataArray);
+          console.log("Mapped auction data:", updatedData);
+          setAuctionData(updatedData);
+        }
+      }
+    });
 
-  socket.on("disconnect", (reason) => {
-    console.warn("❌ Socket disconnected:", reason)
-    setConnectedAuction(false)
-  })
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
+      socket.off("auction_refresh");
+    };
+  }, [socket]);
 
-  socket.on("connect_error", (err) => {
-    console.error("⚠️ Connect error:", err.message)
-    setErrorAuction(err.message)
-  })
-
-  // Update auction data on socket event
-  socket.on("auction_refresh", (resJson) => {
-    console.log("📢 Auction refresh received raw:", resJson)
-    const dataArray = Array.isArray(resJson) ? resJson : [];
-    if (connectedAuction && !errorAuction) {
-if (dataArray.length) {
-      const updatedData = mapToAuctionVaults(dataArray)
-      console.log("Mapped auction data:", updatedData)
-      setAuctionData(updatedData)
-    }}
-  })
-
-  return () => {
-    socket.off("connect")
-    socket.off("disconnect")
-    socket.off("connect_error")
-    socket.off("auction_refresh")
-  }
-}, [socket])
-
-// 🔗 Safe mapping function
-function mapToAuctionVaults(rows: any[]): AuctionVault[] {
-  try {
-    return rows.map((a) => ({
-      id: a.id != null ? String(a.id) : "",
-      vaultId: a.vault_id != null ? String(a.vault_id) : "",
-      liquidationStarted: a.auction_start_ts ? formatDate(a.auction_start_ts) : "",
-      auctionStartTs: a.auction_start_ts || "",
-      txId: a.mint_tx_id || "",
-      vaultCollateral: {
-        amount: a.collateral_locked != null ? String(a.collateral_locked) : "0",
-        currency: "BTC",
-      },
-      lot: {
-        amount: a.btc_price_at_liquidation != null ? String(a.btc_price_at_liquidation) : "0",
-        currency: "USD",
-      },
-      currentClaimPrice: {
-        amount: a.current_claim_price != null ? String(a.current_claim_price) : "0",
-        unit: "per BTC",
-        currency: "USD",
-      },
-    }))
-  } catch (e) {
-    console.error("Failed mapping auction vaults:", e)
-    return []
-  }
-}
-
-
-const handleClaim = async (mintTxid: string, currentClaimPrice: string) => {
-  if (!wallet) {
-    toast.error("Please connect your wallet before claiming.");
-    return;
-  }
- const runeBalanceObj = getRunesBalanceResult?.find(
-  (item) => item?.runeName === "USDBZ•STABLECOIN"
-);
-const runeBalance = Number(runeBalanceObj?.amount ?? 0);
-
-if (runeBalance < 10) {
-  toast.error("You need at least 10 USDBZ runes to claim.");
-  return;
-}
-
-  const payload: AuctionLiquidationRequest = {
-    mintTxid,
-    paymentAddress: wallet?.paymentAddress?.address ?? "",
-    ordinalsAddress: wallet?.ordinalsAddress?.address ?? "",
-    ordinalPublicKey: wallet?.ordinalsAddress?.publicKey ?? "",
-    paymentAddressPublicKey: wallet?.paymentAddress?.publicKey ?? "",
-    currentClaimPrice,
+  // 🔗 Safe mapping function
+  function mapToAuctionVaults(rows: any[]): AuctionVault[] {
+    try {
+      return rows.map((a) => ({
+        id: a.id != null ? String(a.id) : "",
+        vaultId: a.vault_id != null ? String(a.vault_id) : "",
+        liquidationStarted: a.auction_start_ts
+          ? formatDate(a.auction_start_ts)
+          : "",
+        auctionStartTs:
+          a.auction_start_ts != null ? Number(a.auction_start_ts) : 0,
+        txId: a.mint_tx_id || "",
+        vaultCollateral: {
+          amount: a.collateral_locked != null ? Number(a.collateral_locked) : 0,
+          currency: "BTC",
+        },
+        lot: {
+          amount:
+            a.btc_price_at_liquidation != null
+              ? Number(a.btc_price_at_liquidation)
+              : 0,
+          currency: "USD",
+        },
+        currentClaimPrice: {
+          amount:
+            a.current_claim_price != null ? Number(a.current_claim_price) : 0,
+          unit: "per BTC",
+          currency: "USD",
+        },
+      }));
+    } catch (e) {
+      console.error("Failed mapping auction vaults:", e);
+      return [];
+    }
   }
 
-  console.log("Claim payload:", payload)
+  const handleClaim = async (mintTxid: string, currentClaimPrice: number) => {
+    if (!wallet) {
+      toast.error("Please connect your wallet before claiming.");
+      return;
+    }
+    const runeBalanceObj = getRunesBalanceResult?.find(
+      (item) => item?.runeName === "USDBZ•STABLECOIN"
+    );
+    const runeBalance = Number(runeBalanceObj?.amount ?? 0);
 
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auction/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
+    if (runeBalance < 10) {
+      toast.error("You need at least 10 USDBZ runes to claim.");
+      return;
+    }
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-    const data: AuctionLiquidationResponse = await response.json()
-    console.log("✅ Auction Liquidation Response:", data)
-  } catch (err) {
-    console.error("❌ Error during liquidation API call:", err)
-  }
-}
+    const payload: AuctionLiquidationRequest = {
+      mintTxid,
+      paymentAddress: wallet?.paymentAddress?.address ?? "",
+      ordinalAddress: wallet?.ordinalsAddress?.address ?? "",
+      ordinalPublicKey: wallet?.ordinalsAddress?.publicKey ?? "",
+      paymentAddressPublicKey: wallet?.paymentAddress?.publicKey ?? "",
+      currentClaimPrice,
+    };
 
-//  const handleClaimPsbt = async (): Promise<void> => {
-//     if (!liquidationData) {
-//       console.warn("⚠️ No liquidation data available.");
-//       return;
-//     }
-//     const {
-//       data: liquidationDetails,
-//       paymentAddress,
-//       ordinalsAddress,
-//       txid,
-//     } = liquidationData;
-//     const psbtBase64 = liquidationDetails?.psbt;
-//     const mintTxid = txid;
+    console.log("Claim payload:", payload);
 
-//     if (!psbtBase64) {
-//       console.error("❌ Missing PSBT data.");
-//       return;
-//     }
-//     if (!paymentAddress || !ordinalsAddress) {
-//       console.error("❌ Missing address data.");
-//       return;
-//     }
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auction/claim`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-//     setLoading(true);
-//     try {
-//       const signInputs: Record<string, number[]> = {
-//         [paymentAddress]: [1],
-//         [ordinalsAddress]: [0],
-//       };
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const data: AuctionLiquidationResponse = await response.json();
+      console.log("✅ Auction Liquidation Response:", data);
+      if (data.success && data.data) {
+        const liquidationState: AuctionLiquidationState = {
+          data: data?.data,
+          paymentAddress: payload.paymentAddress,
+          ordinalAddress: payload.ordinalAddress,
+        };
 
-//       const signed = await signPsbt({
-//         psbtBase64,
-//         signInputs,
-//         broadcast: false,
-//       });
+        setAuctionLiquidationData(liquidationState);
+        setShowWithDrawAuctionModal(true);
+      } else {
+        toast.error(data.message ?? "Claim failed!");
+      }
+    } catch (err) {
+      console.error("❌ Error during liquidation API call:", err);
+    }
+  };
 
-//       if (!signed?.psbt) {
-//         console.warn("⚠️ No signed PSBT returned.");
-//         return;
-//       }
-//       setShowWithDrawModal(false);
-//       const apiUrl = `${
-//         import.meta.env.VITE_API_URL
-//       }/api/transaction/sendtransaction`;
-//       const res = await fetch(apiUrl, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           signedPsbt: signed.psbt,
-//           mintTxid,
-//         }),
-//       });
-//       const data = await res.json();
-//       if (!res.ok) {
-//         throw new Error(`❌ API request failed: ${res.status}`);
-//       }
-//       if (data.success && data.sendRaxtxResult) {
-//         setTransactionId(data.sendRaxtxResult);
-//         setIsModalOpen(true);
-//       }
-//     } catch (err: any) {
-//       if (err?.message?.includes("User rejected")) {
-//         console.warn("❌ User rejected the PSBT signing request.");
-//       } else {
-//         console.error("❌ Signing or sending failed:", err);
-//       }
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  const handleClaimPsbt = async (): Promise<void> => {
+    if (!AuctionLiquidationData) {
+      console.warn("⚠️ No liquidation data available.");
+      return;
+    }
+    const {
+      data: liquidationDetails,
+      paymentAddress,
+      ordinalAddress,
+    } = AuctionLiquidationData;
+    const psbtBase64 = liquidationDetails?.psbt;
+    const mintTxid = liquidationDetails?.mintTxid;
+
+    if (!psbtBase64) {
+      console.error("❌ Missing PSBT data.");
+      return;
+    }
+    if (!paymentAddress || !ordinalAddress) {
+      console.error("❌ Missing address data.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const signInputs: Record<string, number[]> = {
+        [ordinalAddress]: [1],
+      };
+
+      const signed = await signPsbt({
+        psbtBase64,
+        signInputs,
+        broadcast: false,
+      });
+
+      console.log('auction liquidation signed', signed);
+      if (!signed?.psbt) {
+        console.warn("⚠️ No signed PSBT returned.");
+        return;
+      }
+      setShowWithDrawAuctionModal(false);
+      const apiUrl = `${
+        import.meta.env.VITE_API_URL
+      }/api/auction/claim/success`;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          signedPsbt: signed.psbt,
+          mintTxid,
+          paymentAddress,
+          timestamp: Math.floor(Date.now() / 1000),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`❌ API request failed: ${res.status}`);
+      }
+      if (data.success && data.sendRaxtxResult) {
+        setTransactionId(data.sendRaxtxResult);
+        setIsModalOpen(true);
+      }
+    } catch (err: any) {
+      if (err?.message?.includes("User rejected")) {
+        console.warn("❌ User rejected the PSBT signing request.");
+      } else {
+        console.error("❌ Signing or sending failed:", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -811,7 +846,11 @@ if (runeBalance < 10) {
                   <div className="w-1/2 shrink-0 px-4">
                     <AuctionVaultList
                       vaults={auctionData}
-                      onClaim={handleClaim}
+                      onClaim={(vault) => {
+                        console.log("Claimed vault:", vault);
+                        setAuctionSingleData([vault]);
+                        handleClaim(vault.txId, vault.currentClaimPrice.amount);
+                      }}
                     />
                   </div>
                   <div className="w-1/2 shrink-0">
@@ -867,14 +906,16 @@ if (runeBalance < 10) {
             )}
 
             <div className="text-center mt-4">
-              {wallet?
-              <button
-                onClick={() => setShowAuctionTabs((prev) => !prev)}
-                className="text-gray-500 hover:text-gray-700 underline text-sm"
-              >
-                Switch to {showAuctionTabs ? "Mint / Withdraw" : "Auction"}
-              </button>
-              :""}
+              {wallet ? (
+                <button
+                  onClick={() => setShowAuctionTabs((prev) => !prev)}
+                  className="text-gray-500 hover:text-gray-700 underline text-sm"
+                >
+                  Switch to {showAuctionTabs ? "Mint / Withdraw" : "Auction"}
+                </button>
+              ) : (
+                ""
+              )}
             </div>
           </div>
         </div>
@@ -889,6 +930,12 @@ if (runeBalance < 10) {
           onClose={() => setShowWithDrawModal(false)}
           handleWithdrawPsbt={handleWithdrawPsbt}
           vaults={selectedVaultData}
+        />
+        <AuctionWithdrawModal
+          show={showWithDrawAuctionModal}
+          onClose={() => setShowWithDrawAuctionModal(false)}
+          handleWithdrawPsbt={handleClaimPsbt}
+          vaults={auctionSingleData}
         />
         <TransactionModal
           isOpen={isModalOpen}

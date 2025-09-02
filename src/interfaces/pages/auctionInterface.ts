@@ -1,43 +1,52 @@
 export interface AuctionLiquidationRequest {
-    mintTxid: string;
-    paymentAddress: string;
-    ordinalsAddress: string;
-    ordinalPublicKey: string;
-    paymentAddressPublicKey: string;
-    currentClaimPrice: string;
+  mintTxid: string;
+  paymentAddress: string;
+  ordinalAddress: string;
+  ordinalPublicKey: string;
+  paymentAddressPublicKey: string;
+  currentClaimPrice: number;
 
 }
 export interface AuctionLiquidationResponse {
-  success: boolean;
-  message: string;
-  data: {
+  success?: boolean;
+  message?: string;
+  data?: {
     psbt: string;
     mintTxid: string;
   };
 }
+
 export interface AuctionVault {
   id: string
   vaultId: string
   liquidationStarted: string
-  auctionStartTs: string   
+  auctionStartTs: number
   txId: string
   vaultCollateral: {
-    amount: string
+    amount: number
     currency: string
   }
   lot: {
-    amount: string
+    amount: number
     currency: string
   }
   currentClaimPrice: {
-    amount: string
+    amount: number
     unit: string
     currency: string
   }
 }
+export interface AuctionLiquidationState {
+  data: {
+    mintTxid: string;
+    psbt: string;
+  };
+  paymentAddress: string;
+  ordinalAddress: string;
+}
 
- export interface AuctionVaultListProps {
-  onClaim: (mintTxid: string,currentClaimPrice: string
+export interface AuctionVaultListProps {
+  onClaim: (mintTxid: string, currentClaimPrice: string
 
   ) => void
 
