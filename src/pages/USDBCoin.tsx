@@ -87,7 +87,9 @@ export default function USDBCoin() {
   >(null);
   const [connectedAuction, setConnectedAuction] = useState(false);
   const [auctionData, setAuctionData] = useState<AuctionVault[]>([]);
-  const [auctionSingleData, setAuctionSingleData] = useState<AuctionVault[]>([]);
+  const [auctionSingleData, setAuctionSingleData] = useState<AuctionVault[]>(
+    []
+  );
 
   const [errorAuction, setErrorAuction] = useState<string | null>(null);
   const socket = initSocket();
@@ -533,7 +535,7 @@ export default function USDBCoin() {
       console.log("json", json.data);
       const mapped: HistoricalVault[] = json.data.map((item: any) => ({
         id: String(item.id),
-        vaultId: String(item.vault_id),
+        vaultId: String(item.id),
         date: String(item.claim_tx_success_ts),
         btcCollateral: String(item.collateral_locked),
         finalBid: String(item.current_claim_price),
@@ -610,53 +612,53 @@ export default function USDBCoin() {
 
   // 🔗 Setup socket
   useEffect(() => {
-    socket.on("connect", () => {
+    const handleConnect = () => {
       console.log("✅ Socket connected:", socket.id);
       setConnectedAuction(true);
-    });
+    };
 
-    socket.on("disconnect", (reason) => {
+    const handleDisconnect = (reason: string) => {
       console.warn("❌ Socket disconnected:", reason);
       setConnectedAuction(false);
-    });
+    };
 
-    socket.on("connect_error", (err) => {
+    const handleConnectError = (err: any) => {
       console.error("⚠️ Connect error:", err.message);
       setErrorAuction(err.message);
-    });
+    };
 
-    // Update auction data on socket event
-    socket.on("auction_refresh", (resJson) => {
+    const handleAuctionRefresh = (resJson: any) => {
       console.log("📢 Auction refresh received raw:", resJson);
       const dataArray = Array.isArray(resJson) ? resJson : [];
-      if (connectedAuction && !errorAuction) {
-        if (dataArray.length) {
-          const updatedData = mapToAuctionVaults(dataArray);
-          console.log("Mapped auction data:", updatedData);
-          setAuctionData(updatedData);
-        }
-      }
-    });
+      const updatedData = mapToAuctionVaults(dataArray);
+      setAuctionData(updatedData);
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("auction_refresh", handleAuctionRefresh);
 
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("connect_error");
-      socket.off("auction_refresh");
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("auction_refresh", handleAuctionRefresh);
     };
-  }, [socket]);
+  }, [socket, connectedAuction, errorAuction]);
 
   // 🔗 Safe mapping function
   function mapToAuctionVaults(rows: any[]): AuctionVault[] {
     try {
-      return rows.map((a) => ({
+      return rows.map((a) => (
+         console.log("Mapping auction vault:", a),{
+       
         id: a.id != null ? String(a.id) : "",
         vaultId: a.vault_id != null ? String(a.vault_id) : "",
         liquidationStarted: a.auction_start_ts
           ? formatDate(a.auction_start_ts)
           : "",
-        auctionStartTs:
-          a.auction_start_ts != null ? Number(a.auction_start_ts) : 0,
+       auctionStartTs: a.auction_start_ts ? new Date(a.auction_start_ts).getTime() : 0,
         txId: a.mint_tx_id || "",
         vaultCollateral: {
           amount: a.collateral_locked != null ? Number(a.collateral_locked) : 0,
@@ -773,12 +775,13 @@ export default function USDBCoin() {
         broadcast: false,
       });
 
-      console.log('auction liquidation signed', signed);
+      console.log("auction liquidation signed", signed);
       if (!signed?.psbt) {
         console.warn("⚠️ No signed PSBT returned.");
         return;
       }
       setShowWithDrawAuctionModal(false);
+      console.log("mintTxid", mintTxid);
       const apiUrl = `${
         import.meta.env.VITE_API_URL
       }/api/auction/claim/success`;
@@ -793,11 +796,12 @@ export default function USDBCoin() {
         }),
       });
       const data = await res.json();
+      console.log("claim success response", data);
       if (!res.ok) {
         throw new Error(`❌ API request failed: ${res.status}`);
       }
-      if (data.success && data.sendRaxtxResult) {
-        setTransactionId(data.sendRaxtxResult);
+      if (data.success === true && data?.data?.claim_tx_id) {
+        setTransactionId(data?.data?.claim_tx_id);
         setIsModalOpen(true);
       }
     } catch (err: any) {

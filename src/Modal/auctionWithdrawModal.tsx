@@ -44,8 +44,7 @@ const AuctionWithdrawModal = ({
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <span className="font-bold">Burning:</span>
             <span>
-              {vault?.lot?.amount?.toLocaleString()} USDBZ tokens will be burnt
-              from your wallet
+              10 USDBZ tokens will be burnt from your wallet
             </span>
           </div>
 
@@ -53,8 +52,7 @@ const AuctionWithdrawModal = ({
             <span className="font-bold">You Receive:</span>
             <div>
               <p>
-                {vault?.vaultCollateral?.amount} {vault?.vaultCollateral?.currency} 
-                back to your wallet
+                {vault?.currentClaimPrice?.amount} vault BTC 
               </p>
             </div>
           </div>

@@ -59,7 +59,10 @@ export function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString(undefined, options);
 }
 
-export function useAuctionTimer(startTs: string | number, durationMinutes = 30) {
+export function useAuctionTimer(
+  startTs: string | number,     
+  durationMinutes = 30     
+) {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
@@ -68,7 +71,7 @@ export function useAuctionTimer(startTs: string | number, durationMinutes = 30) 
       return;
     }
 
-    const start = new Date(startTs).getTime(); // works for both string & number
+    const start = new Date(startTs).getTime();
     if (isNaN(start)) {
       setTimeLeft("Invalid date");
       return;
@@ -85,9 +88,18 @@ export function useAuctionTimer(startTs: string | number, durationMinutes = 30) 
         return;
       }
 
-      const minutes = Math.floor(diff / 1000 / 60);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
-      setTimeLeft(`${minutes} min ${seconds} sec left`);
+
+      let formatted = "";
+      if (days > 0) formatted += `${days}d `;
+      if (hours > 0 || days > 0) formatted += `${hours}h `;
+      if (minutes > 0 || hours > 0 || days > 0) formatted += `${minutes}m `;
+      formatted += `${seconds}s`;
+
+      setTimeLeft(formatted.trim() + " left");
     }
 
     updateTimer(); // initial run
@@ -98,5 +110,6 @@ export function useAuctionTimer(startTs: string | number, durationMinutes = 30) 
 
   return timeLeft;
 }
+
 
 

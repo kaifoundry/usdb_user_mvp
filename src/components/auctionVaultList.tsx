@@ -29,6 +29,7 @@ function AuctionVaultCardWrapper({
   vault: AuctionVault
   onClaim: (vault: AuctionVault) => void
 }) {
+  console.log("First vault:", vault);
   const timeLeft = useAuctionTimer(vault.auctionStartTs, 30)
 
   return (
