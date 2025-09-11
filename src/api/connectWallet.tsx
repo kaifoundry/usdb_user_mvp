@@ -4,8 +4,6 @@ import type { ConnectWalletResult, WalletContextType } from "../interfaces/api/c
 import { useEnsureXverseContext, ensureXverseContext } from "../Hooks/useMobileSignIn";
 import toast from "react-hot-toast";
 
-
-
 export const connectWalletApi = async (): Promise<ConnectWalletResult> => {
   try {
     try {
@@ -19,6 +17,7 @@ export const connectWalletApi = async (): Promise<ConnectWalletResult> => {
 
     if (response.status === "success") {
       toast.success("Wallet connected successfully");
+
       const paymentAddressItem = response.result.addresses.find(
         (address: any) => address.purpose === AddressPurpose.Payment
       );
@@ -29,12 +28,39 @@ export const connectWalletApi = async (): Promise<ConnectWalletResult> => {
         (address: any) => address.purpose === AddressPurpose.Stacks
       );
 
+      if (!paymentAddressItem) {
+        throw new Error("Payment address not found in wallet connection response.");
+      }
+
       console.log({ name: "connectWallet", paymentAddressItem, ordinalsAddressItem, stacksAddressItem });
-      return {
+
+      // 🔥 Backend API Call
+      const apiResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/wallet/connect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentAddress: paymentAddressItem.address,
+          paymentAddressPublicKey: paymentAddressItem.publicKey,
+        }),
+      });
+
+      const apiData = await apiResponse.json();
+
+      if (apiData.success === true) {
+        toast.success(apiData.message || "Wallet registered successfully.");
+        return {
         paymentAddress: paymentAddressItem,
         ordinalsAddress: ordinalsAddressItem,
         stacksAddress: stacksAddressItem,
       };
+      } else {
+        toast.error(apiData.message || "Failed to register wallet.");
+        throw new Error(apiData.message || "Wallet registration failed.");
+      }
+
+      
     } else {
       if (response.error.code === RpcErrorCode.USER_REJECTION) {
         throw new Error("User rejected wallet connection.");
@@ -46,6 +72,7 @@ export const connectWalletApi = async (): Promise<ConnectWalletResult> => {
     throw new Error(err?.error?.message || err.message || "Unknown error");
   }
 };
+
 
 export const disconnectWalletApi = async (): Promise<void> => {
   try {
@@ -75,44 +102,44 @@ const WalletContext = createContext<WalletContextType>({
 });
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-   const ensureXverseContext = useEnsureXverseContext();
-   const [wallet, setWallet] = useState<ConnectWalletResult | null>(null);
-   const [loading, setLoading] = useState(false);
-   const [error, setError] = useState<string | null>(null);
+  const ensureXverseContext = useEnsureXverseContext();
+  const [wallet, setWallet] = useState<ConnectWalletResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-   const connectWallet = useCallback(async () => {
-     setLoading(true);
-     setError(null);
-     try {
-       const result = await connectWalletApi();
-       setWallet(result);
-     } catch (err: any) {
-       setError(err.message || "Unknown error");
-     } finally {
-       setLoading(false);
-     }
-   }, [ensureXverseContext]);
+  const connectWallet = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await connectWalletApi();
+      setWallet(result);
+    } catch (err: any) {
+      setError(err.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [ensureXverseContext]);
 
-   const disconnectWallet = useCallback(async () => {
-     setLoading(true);
-     setError(null);
-     try {
-       await disconnectWalletApi();
-       setWallet(null);
-       console.log("Wallet disconnected successfully");
-     } catch (err: any) {
-       setError(err.message || "Unknown error");
-     } finally {
-       setLoading(false);
-     }
-   }, []);
- 
+  const disconnectWallet = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await disconnectWalletApi();
+      setWallet(null);
+      console.log("Wallet disconnected successfully");
+    } catch (err: any) {
+      setError(err.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const value = useMemo(
     () => ({ wallet, loading, error, connectWallet, disconnectWallet }),
     [wallet, loading, error, connectWallet, disconnectWallet]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
- };
- 
- export const useWallet = () => useContext(WalletContext);
+};
+
+export const useWallet = () => useContext(WalletContext);
